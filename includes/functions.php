@@ -31,6 +31,20 @@ function validateCSRF($token)
     return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
 }
 
+function requireDonor()
+{
+    if (!isDonor()) {
+        header("Location: admin_dashboard.php");
+        exit();
+    }
+}
+
+function isDonor()
+{
+    return isset($_SESSION['role']) && $_SESSION['role'] === 'donor';
+}
+
+
 function checkSessionTimeout()
 {
     if (
