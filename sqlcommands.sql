@@ -10,6 +10,7 @@ CREATE TABLE users (
     email VARCHAR(150) NOT NULL UNIQUE,
     gender ENUM('male', 'female', 'other') NOT NULL,
     age INT NOT NULL,
+    eligible TINYINT(1) DEFAULT 0,
     blood_group VARCHAR(5) NULL,
     password VARCHAR(255) NOT NULL,
     role ENUM('admin', 'donor') DEFAULT 'donor',
