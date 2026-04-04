@@ -26,6 +26,7 @@ $email = $user['email'];
 $gender = $user['gender'];
 $age = $user['age'];
 $blood_group = $user['blood_group'] ?? '';
+$eligible = isset($_POST['eligible']) ? 1 : 0;
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
@@ -36,7 +37,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $error = "Invalid request!";
     } else {
 
-        $eligible = isset($_POST['eligible']) ? 1 : 0;
 
         $first_name = cleanInput($_POST['first_name']);
         $last_name = cleanInput($_POST['last_name']);
