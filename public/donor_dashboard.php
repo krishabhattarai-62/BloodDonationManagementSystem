@@ -105,7 +105,7 @@ $user_info = $user_info->fetch();
                 <div class="card">
                     <div class="card-header">
                         My Recent Blood Requests
-                        <a href="myrequest.php" style="color:white; font-size:13px;">View All →</a>
+                        <a href="donor_request.php" style="color:white; font-size:13px;">View All →</a>
                     </div>
                     <div class="card-body">
                         <table>
@@ -122,7 +122,7 @@ $user_info = $user_info->fetch();
                             <tbody>
                                 <?php if (empty($recent)): ?>
                                     <tr>
-                                        <td colspan="6" class="text-center">No requests yet. <a href="Requestblood.php"
+                                        <td colspan="6" class="text-center">No requests yet. <a href="donor_request.php"
                                                 style="color:#c0392b;">Make one!</a></td>
                                     </tr>
                                 <?php else: ?>

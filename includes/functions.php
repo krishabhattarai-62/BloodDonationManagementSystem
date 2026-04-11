@@ -15,7 +15,7 @@ function validateEmail($email)
 
 function validatePassword($password)
 {
-    return strlen($password) >= 6;
+    return strlen($password) >= 8;
 }
 
 function generateCSRF()
@@ -77,4 +77,24 @@ function loginUser($pdo, $email, $password)
         return true;
     }
     return false;
+}
+
+function registerUser($pdo, $first_name, $last_name, $contact_number, $address, $email, $gender, $age, $password)
+{
+    $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
+    $role = 'donor';
+
+    $stmt = $pdo->prepare(
+        "INSERT INTO users (first_name, last_name, contact_number, address, email, gender, age, password, role)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    );
+
+    return $stmt->execute([$first_name, $last_name, $contact_number, $address, $email, $gender, $age, $hashedPassword, $role]);
+}
+
+function logoutUser()
+{
+    $_SESSION = [];
+    session_unset();
+    session_destroy();
 }
