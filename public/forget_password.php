@@ -1,23 +1,58 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
+if (session_status() === PHP_SESSION_NONE)
     session_start();
-}
-require '../config/db.php';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reset_email']) && isset($_POST['new_password'])) {
+require '../config/db.php';
+require '../PHPMailer/src/PHPMailer.php';
+require '../PHPMailer/src/SMTP.php';
+require '../PHPMailer/src/Exception.php';
+
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+
+$error = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['reset_email']);
-    $new_password = password_hash($_POST['new_password'], PASSWORD_DEFAULT);
 
     $check = $pdo->prepare("SELECT id FROM users WHERE email = ?");
     $check->execute([$email]);
 
-    if ($check->rowCount() > 0) {
-        $stmt = $pdo->prepare("UPDATE users SET password = ? WHERE email = ?");
-        $stmt->execute([$new_password, $email]);
-        header("Location: login.php?reset=1");
-        exit;
-    } else {
+    if ($check->rowCount() === 0) {
         $error = "Email not found in our records.";
+    } else {
+        $otp = rand(100000, 999999);
+
+        // Save OTP to DB
+        $stmt = $pdo->prepare("UPDATE users SET otp = ? WHERE email = ?");
+        $stmt->execute([$otp, $email]);
+
+        // Store email in session to carry across pages
+        $_SESSION['reset_email'] = $email;
+
+        try {
+            $mail = new PHPMailer(true);
+            $mail->isSMTP();
+            $mail->Host = 'sandbox.smtp.mailtrap.io';
+            $mail->SMTPAuth = true;
+            $mail->Username = 'c5bf0a512d5b85';
+            $mail->Password = '1bdee822f50964';
+            $mail->Port = 587;
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+
+            $mail->setFrom('noreply@bloodsystem.com', 'Blood Donation System');
+            $mail->addAddress($email);
+            $mail->isHTML(true);
+            $mail->Subject = 'Your Password Reset OTP';
+            $mail->Body = " Your Otp Code is : {$otp}";
+
+            $mail->send();
+            header("Location: verify_otp.php");
+            exit;
+
+        } catch (Exception $e) {
+            $error = "Failed to send email: {$mail->ErrorInfo}";
+        }
     }
 }
 ?>
@@ -42,21 +77,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reset_email']) && iss
         <div class="auth-right">
             <h2>Reset Password</h2>
 
-            <?php if (isset($error)): ?>
-                <div class="alert alert-danger">
-                    <?= $error ?>
-                </div>
+            <?php if ($error): ?>
+                <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
             <?php endif; ?>
 
             <form action="forget_password.php" method="POST">
                 <div class="form-group">
                     <label>Email Address</label>
                     <input type="email" name="reset_email" placeholder="" required />
-                </div>
-
-                <div class="form-group">
-                    <label>New Password</label>
-                    <input type="password" name="new_password" placeholder="" required />
                 </div>
 
                 <button type="submit" class="btn-primary" style="width:100%; margin-top:8px;">Reset Password</button>
