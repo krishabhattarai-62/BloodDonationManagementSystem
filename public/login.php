@@ -90,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <hr class="auth-divider">
                     <div class="auth-bottom">
                         <p>Dont have an account?</p>
-                        <a href="register.php"><button class="btn-secondary">Signup</button></a>
+                        <a href="signup.php"><button class="btn-secondary">Signup</button></a>
                         <a href="../index.php" class="auth-back-home">Back to Home</a>
                     </div>
                     <p class="auth-footer">&copy;
