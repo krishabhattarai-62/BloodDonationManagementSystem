@@ -19,6 +19,12 @@ $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
 $stmt->execute([$user_id]);
 $user = $stmt->fetch();
 
+$st = $pdo->prepare("SELECT eligible FROM users WHERE id = ?");
+$st->execute([$user_id]);
+$alreadyEligible = $st->fetch();
+
+$alreadyEligible = $alreadyEligible['eligible'] ?? 0;
+
 $first_name = $user['first_name'];
 $last_name = $user['last_name'];
 $contact_number = $user['contact_number'];
@@ -64,6 +70,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $error = "Failed to update profile!";
             }
         }
+
+        header("Refresh:1");
     }
 }
 ?>
@@ -186,7 +194,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                             <div class="form-group">
                                 <label>
-                                    <input type="checkbox" name="eligible" <?php if ($eligible == 1)
+                                    <input type="checkbox" name="eligible" <?php if ($alreadyEligible == 1)
                                         echo 'checked'; ?>>
                                     I confirm that I meet all the above conditions
                                 </label>
