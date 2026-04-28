@@ -9,7 +9,6 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $role = $_SESSION['role'];
-$first_name = $_SESSION['first_name'];
 
 if ($role === 'admin') {
     header("Location: admin_dashboard.php");
