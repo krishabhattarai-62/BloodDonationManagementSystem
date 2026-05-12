@@ -4,14 +4,16 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 require '../config/db.php';
 
+require_once '../includes/notification.php';
+$unread = getUnreadCount($pdo, $_SESSION['user_id']);
+
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit;
 }
 
-// Admin gets their own dashboard
 if ($_SESSION['role'] === 'admin') {
-    include 'admindashboard.php';
+    include 'admin_dashboard.php';
     exit;
 }
 
@@ -38,11 +40,9 @@ $user_info = $user_info->fetch();
 
 <head>
     <meta charset="UTF-8" />
-    <title>User Dashboard - Blood Donation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard - Blood Donation</title>
     <link rel="stylesheet" href="../assets/css/style.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
-        integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw=="
-        crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
 
 <body>
@@ -54,58 +54,64 @@ $user_info = $user_info->fetch();
             <div class="topbar">
                 <h2>Blood Donation Management</h2>
                 <div class="topbar-right">
-                    <span>👤
-                        <?= htmlspecialchars($_SESSION['first_name']) ?>
-                    </span>
-                    <a href="logout.php">Logout</a>
+                    <a href="user_notification.php"
+                        style="position:relative; text-decoration:none; margin-right:15px; font-size:20px;">
+                        <span class="material-icons">notification</span>🔔
+                        <?php if ($unread > 0): ?>
+                            <span style="
+                            position:absolute; top:-6px; right:-8px;
+                            background:red; color:white;
+                            border-radius:50%; font-size:11px;
+                            width:18px; height:18px;
+                            display:flex; align-items:center; justify-content:center;
+                            font-weight:bold;">
+                                <?= $unread > 9 ? '9+' : $unread ?>
+                            </span>
+                        <?php endif; ?>
+                    </a>
+                    <span>&#128100; <?= htmlspecialchars($_SESSION['first_name']) ?></span>
+                    <a href="logout.php" onclick="return confirm('Are you sure you want to logout?')">Logout</a>
                 </div>
             </div>
 
             <div class="page-content">
-                <p class="page-title" style="display: flex; align-items: center">Welcome,
-                    <?= htmlspecialchars($user_info['first_name']) ?>! <span style="color: red"><i
-                            class="fa-solid fa-hand-spock"></i></span>
+                <p class="page-title">
+                    Welcome, <?= htmlspecialchars($user_info['first_name']) ?>!
                 </p>
 
                 <div class="stats-grid">
                     <div class="stat-card">
-                        <div class="stat-icon">🩸</div>
+                        <div class="stat-icon">&#129656;</div>
                         <div class="stat-info">
-                            <h3>
-                                <?= $user_info['blood_group'] ?>
-                            </h3>
+                            <h3><?= $user_info['blood_group'] ?? '—' ?></h3>
                             <p>My Blood Group</p>
                         </div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-icon">📋</div>
+                        <div class="stat-icon">&#128203;</div>
                         <div class="stat-info">
-                            <h3>
-                                <?= $req_count ?>
-                            </h3>
+                            <h3><?= $req_count ?></h3>
                             <p>My Requests</p>
                         </div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-icon">📅</div>
+                        <div class="stat-icon">&#128197;</div>
                         <div class="stat-info">
-                            <h3>
-                                <?= $don_count ?>
-                            </h3>
+                            <h3><?= $don_count ?></h3>
                             <p>Donations Scheduled</p>
                         </div>
                     </div>
                 </div>
 
-                <div style="display:flex; gap:15px; margin-bottom:25px; flex-wrap:wrap;">
-                    <a href="Requestblood.php"><button class="btn-primary">🩸 Request Blood</button></a>
-                    <a href="scheduledonation.php"><button class="btn-secondary">📅 Donate Blood</button></a>
+                <div style="display:flex; gap:12px; margin-bottom:24px; flex-wrap:wrap;">
+                    <a href="donor_request.php"><button class="btn-primary">Request Blood</button></a>
+                    <a href="schedule_donation.php"><button class="btn-secondary">Donate Blood</button></a>
                 </div>
 
                 <div class="card">
                     <div class="card-header">
                         My Recent Blood Requests
-                        <a href="donor_request.php" style="color:white; font-size:13px;">View All →</a>
+                        <a href="user_request.php" style="color:white; font-size:13px;">View All &#8594;</a>
                     </div>
                     <div class="card-body">
                         <table>
@@ -122,27 +128,19 @@ $user_info = $user_info->fetch();
                             <tbody>
                                 <?php if (empty($recent)): ?>
                                     <tr>
-                                        <td colspan="6" class="text-center">No requests yet. <a href="donor_request.php"
-                                                style="color:#c0392b;">Make one!</a></td>
+                                        <td colspan="6" class="text-center">
+                                            No requests yet.
+                                            <a href="donor_request.php" style="color:var(--red-mid);">Make one!</a>
+                                        </td>
                                     </tr>
                                 <?php else: ?>
                                     <?php foreach ($recent as $i => $r): ?>
                                         <tr>
-                                            <td>
-                                                <?= $i + 1 ?>
-                                            </td>
-                                            <td>
-                                                <?= htmlspecialchars($r['patient_name']) ?>
-                                            </td>
-                                            <td>
-                                                <?= $r['blood_group'] ?>
-                                            </td>
-                                            <td>
-                                                <?= $r['units'] ?>
-                                            </td>
-                                            <td>
-                                                <?= htmlspecialchars($r['hospital']) ?>
-                                            </td>
+                                            <td><?= $i + 1 ?></td>
+                                            <td><?= htmlspecialchars($r['patient_name']) ?></td>
+                                            <td><?= $r['blood_group'] ?></td>
+                                            <td><?= $r['units'] ?></td>
+                                            <td><?= htmlspecialchars($r['hospital']) ?></td>
                                             <td>
                                                 <?php
                                                 $cls = ['pending' => 'badge-warning', 'approved' => 'badge-success', 'rejected' => 'badge-danger'];
