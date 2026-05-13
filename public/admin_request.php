@@ -9,21 +9,49 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-
 if (isset($_GET['action']) && isset($_GET['id'])) {
-    $status = ($_GET['action'] === 'approve') ? 'approved' : 'rejected';
-    $stmt = $pdo->prepare("UPDATE blood_requests SET status=? WHERE id=?");
-    $stmt->execute([$status, (int) $_GET['id']]);
+    if ($_GET['action'] === 'approve') {
+        // Get request info
+        $stmt = $pdo->prepare("SELECT * FROM blood_requests WHERE id=?");
+        $stmt->execute([(int) $_GET['id']]);
+        $req = $stmt->fetch();
+
+        // Update status
+        $pdo->prepare("UPDATE blood_requests SET status='approved', remarks=NULL WHERE id=?")->execute([(int) $_GET['id']]);
+
+        // Notify user
+        $msg = "Your blood request for patient '{$req['patient_name']}' has been approved.";
+        $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$req['user_id'], $msg]);
+
+        header("Location: admin_request.php?msg=updated");
+        exit;
+    }
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reject_id'])) {
+    $remarks = trim($_POST['remarks']);
+
+    // Get request info
+    $stmt = $pdo->prepare("SELECT * FROM blood_requests WHERE id=?");
+    $stmt->execute([(int) $_POST['reject_id']]);
+    $req = $stmt->fetch();
+
+    // Update status
+    $pdo->prepare("UPDATE blood_requests SET status='rejected', remarks=? WHERE id=?")->execute([$remarks, (int) $_POST['reject_id']]);
+
+    // Notify user
+    $msg = "Your blood request for patient '{$req['patient_name']}' has been rejected. Reason: {$remarks}";
+    $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$req['user_id'], $msg]);
+
     header("Location: admin_request.php?msg=updated");
     exit;
 }
 
-// Fetch all requests
 $requests = $pdo->query("
-  SELECT br.*, u.first_name, u.last_name, u.email
-  FROM blood_requests br
-  JOIN users u ON br.user_id = u.id
-  ORDER BY br.created_at DESC
+    SELECT br.*, u.first_name, u.last_name, u.email
+    FROM blood_requests br
+    JOIN users u ON br.user_id = u.id
+    ORDER BY br.created_at DESC
 ")->fetchAll();
 ?>
 <!DOCTYPE html>
@@ -31,6 +59,7 @@ $requests = $pdo->query("
 
 <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Blood Requests - Admin</title>
     <link rel="stylesheet" href="../assets/css/style.css" />
 </head>
@@ -44,7 +73,7 @@ $requests = $pdo->query("
             <div class="topbar">
                 <h2>Blood Donation Management</h2>
                 <div class="topbar-right">
-                    <span>👤 <?= htmlspecialchars($_SESSION['first_name']) ?></span>
+                    <span>&#128100; <?= htmlspecialchars($_SESSION['first_name']) ?></span>
                     <a href="logout.php">Logout</a>
                 </div>
             </div>
@@ -53,7 +82,7 @@ $requests = $pdo->query("
                 <p class="page-title">Blood Requests</p>
 
                 <?php if (isset($_GET['msg'])): ?>
-                    <div class="alert alert-success">Request status updated.</div>
+                    <div class="alert alert-success">Request status updated successfully.</div>
                 <?php endif; ?>
 
                 <div class="card">
@@ -77,7 +106,7 @@ $requests = $pdo->query("
                             <tbody>
                                 <?php if (empty($requests)): ?>
                                     <tr>
-                                        <td colspan="9" class="text-center">No requests found.</td>
+                                        <td colspan="10" class="text-center">No requests found.</td>
                                     </tr>
                                 <?php else: ?>
                                     <?php foreach ($requests as $i => $r): ?>
@@ -92,27 +121,30 @@ $requests = $pdo->query("
                                             <td>
                                                 <?php if (!empty($r['document'])): ?>
                                                     <a href="../uploads/<?= htmlspecialchars($r['document']) ?>" target="_blank"
-                                                        class="btn-primary" style="padding:5px 10px; font-size:12px;">
-                                                        View
-                                                    </a>
+                                                        class="btn-primary" style="padding:5px 10px; font-size:12px;">View</a>
                                                 <?php else: ?>
-                                                    No File
+                                                    <span style="color:var(--gray-mid);">No File</span>
                                                 <?php endif; ?>
                                             </td>
                                             <td>
                                                 <?php
-                                                $cls = ['pending' => 'badge-warning', 'approved' => 'badge-success', 'rejected' => 'badge-success'];
+                                                $cls = ['pending' => 'badge-warning', 'approved' => 'badge-success', 'rejected' => 'badge-danger'];
                                                 echo "<span class='badge " . $cls[$r['status']] . "'>" . ucfirst($r['status']) . "</span>";
                                                 ?>
                                             </td>
                                             <td>
                                                 <?php if ($r['status'] === 'pending'): ?>
                                                     <a href="admin_request.php?action=approve&id=<?= $r['id'] ?>"
-                                                        class="btn-secondary" style="padding:4px 8px; font-size:12px;">Approve</a>
-                                                    <a href="admin_request.php?action=reject&id=<?= $r['id'] ?>"
-                                                        style="color:#c0392b; text-decoration:none; font-size:13px;">❌ Reject</a>
+                                                        class="btn-secondary"
+                                                        style="padding:4px 10px; font-size:12px; margin-right:4px;">
+                                                        Approve
+                                                    </a>
+                                                    <button onclick="openRejectModal(<?= $r['id'] ?>)"
+                                                        style="color:var(--red-mid); background:none; border:none; font-size:13px; font-weight:600; cursor:pointer;">
+                                                        Reject
+                                                    </button>
                                                 <?php else: ?>
-                                                    <span style="color:#aaa; font-size:12px;">—</span>
+                                                    <span style="color:var(--gray-mid); font-size:12px;">&#8212;</span>
                                                 <?php endif; ?>
                                             </td>
                                         </tr>
@@ -126,6 +158,40 @@ $requests = $pdo->query("
             </div>
         </div>
     </div>
+
+    <!-- Reject Modal -->
+    <div id="rejectModal"
+        style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
+        <div style="background:#fff; border-radius:10px; padding:30px; width:400px; max-width:90%;">
+            <h3 style="margin-top:0; color:#c0392b;">Reject Request</h3>
+            <p style="color:#555;">Please provide a reason for rejection:</p>
+            <form method="POST" action="admin_request.php">
+                <input type="hidden" name="reject_id" id="rejectId">
+                <textarea name="remarks" required rows="4" placeholder="Enter rejection reason..."
+                    style="width:100%; padding:10px; border:1px solid #ccc; border-radius:6px; font-size:14px; resize:vertical; box-sizing:border-box;"></textarea>
+                <div style="display:flex; gap:10px; margin-top:15px; justify-content:flex-end;">
+                    <button type="button" onclick="closeRejectModal()"
+                        style="padding:8px 18px; border:1px solid #ccc; background:#fff; border-radius:6px; cursor:pointer;">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                        style="padding:8px 18px; background:#c0392b; color:#fff; border:none; border-radius:6px; cursor:pointer;">
+                        Confirm Reject
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openRejectModal(id) {
+            document.getElementById('rejectId').value = id;
+            document.getElementById('rejectModal').style.display = 'flex';
+        }
+        function closeRejectModal() {
+            document.getElementById('rejectModal').style.display = 'none';
+        }
+    </script>
 </body>
 
 </html>

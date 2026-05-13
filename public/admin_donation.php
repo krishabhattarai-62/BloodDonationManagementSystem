@@ -4,17 +4,16 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 require '../config/db.php';
 
-// Protect page - only admin can access
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit;
 }
 
 $donations = $pdo->query("
-  SELECT d.*, u.first_name, u.last_name, u.blood_group
-  FROM donations d
-  JOIN users u ON d.user_id = u.id
-  ORDER BY d.donation_date DESC
+    SELECT d.*, u.first_name, u.last_name, u.blood_group
+    FROM donations d
+    JOIN users u ON d.user_id = u.id
+    ORDER BY d.donation_date DESC
 ")->fetchAll();
 ?>
 <!DOCTYPE html>
@@ -22,6 +21,7 @@ $donations = $pdo->query("
 
 <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Donations - Admin</title>
     <link rel="stylesheet" href="../assets/css/style.css" />
 </head>
@@ -35,7 +35,7 @@ $donations = $pdo->query("
             <div class="topbar">
                 <h2>Blood Donation Management</h2>
                 <div class="topbar-right">
-                    <span>👤 <?= htmlspecialchars($_SESSION['first_name']) ?></span>
+                    <span>&#128100; <?= htmlspecialchars($_SESSION['first_name']) ?></span>
                     <a href="logout.php">Logout</a>
                 </div>
             </div>
@@ -52,6 +52,7 @@ $donations = $pdo->query("
                                     <th>#</th>
                                     <th>Donor Name</th>
                                     <th>Blood Group</th>
+                                    <th>Units</th>
                                     <th>Donation Date</th>
                                     <th>Status</th>
                                 </tr>
@@ -59,7 +60,7 @@ $donations = $pdo->query("
                             <tbody>
                                 <?php if (empty($donations)): ?>
                                     <tr>
-                                        <td colspan="5" class="text-center">No donations scheduled.</td>
+                                        <td colspan="6" class="text-center">No donations scheduled.</td>
                                     </tr>
                                 <?php else: ?>
                                     <?php foreach ($donations as $i => $d): ?>
@@ -67,6 +68,7 @@ $donations = $pdo->query("
                                             <td><?= $i + 1 ?></td>
                                             <td><?= htmlspecialchars($d['first_name'] . ' ' . $d['last_name']) ?></td>
                                             <td><span class="badge badge-danger"><?= $d['blood_group'] ?></span></td>
+                                            <td><?= $d['units'] ?></td>
                                             <td><?= date('d M Y', strtotime($d['donation_date'])) ?></td>
                                             <td>
                                                 <?php
