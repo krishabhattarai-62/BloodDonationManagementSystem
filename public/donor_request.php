@@ -87,58 +87,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <?php endif; ?>
 
                     <div class="card-body">
-                        <div class="table-responsive">
-                            <form action="donor_request.php" method="POST" enctype="multipart/form-data">
+                        <form action="donor_request.php" method="POST" enctype="multipart/form-data">
 
+                            <div class="form-group">
+                                <label>Patient Name <span class="required">*</span></label>
+                                <input type="text" name="patient_name" placeholder="Enter patient full name" required />
+                            </div>
+
+                            <div class="form-row mb-18">
                                 <div class="form-group">
-                                    <label>Patient Name</label>
-                                    <input type="text" name="patient_name" placeholder="Enter patient full name"
-                                        required />
+                                    <label>Blood Group Needed <span class="required">*</span></label>
+                                    <select name="blood_group" required>
+                                        <option value="">Select blood group</option>
+                                        <?php foreach (['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'] as $g)
+                                            echo "<option value=\"$g\">$g</option>"; ?>
+                                    </select>
                                 </div>
-
-                                <div class="form-row mb-18">
-                                    <div class="form-group">
-                                        <label>Blood Group Needed</label>
-                                        <select name="blood_group" required>
-                                            <option value="">Select blood group</option>
-                                            <?php foreach (['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'] as $g)
-                                                echo "<option value=\"$g\">$g</option>"; ?>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Units Required</label>
-                                        <input type="number" name="units" min="1" max="10" value="1" required />
-                                    </div>
-                                </div>
-
                                 <div class="form-group">
-                                    <label>Hospital / Location</label>
-                                    <input type="text" name="hospital" placeholder="e.g. Grande Hospital, Kathmandu"
-                                        required />
+                                    <label>Units Required <span class="required">*</span></label>
+                                    <input type="number" name="units" min="1" max="10" value="1" required />
                                 </div>
+                            </div>
 
-                                <div class="form-group">
-                                    <label>Contact Number</label>
-                                    <input type="text" name="contact" placeholder="98XXXXXXXX" required />
-                                </div>
+                            <div class="form-group">
+                                <label>Hospital / Location <span class="required">*</span></label>
+                                <input type="text" name="hospital" placeholder="e.g. Grande Hospital, Kathmandu"
+                                    required />
+                            </div>
 
-                                <div class="form-group">
-                                    <label>Upload Supporting Document</label>
-                                    <input type="file" name="document" accept=".pdf,.jpg,.jpeg,.png" style="width:100%;"
-                                        required />
-                                    <p style="font-size:11px; color:var(--gray-mid); margin-top:5px;">
-                                        Accepted: PDF, JPG, PNG (medical proof or prescription)
-                                    </p>
-                                </div>
+                            <div class="form-group">
+                                <label>Contact Number <span class="required">*</span></label>
+                                <input type="text" name="contact" placeholder="98XXXXXXXX" required />
+                            </div>
 
-                                <div class="text-center mt-20">
-                                    <button type="submit" class="btn-primary" style="padding:11px 50px;">
-                                        Submit Request
-                                    </button>
-                                </div>
+                            <div class="form-group">
+                                <label>Upload Supporting Document <span class="required">*</span></label>
+                                <input type="file" name="document" accept=".pdf,.jpg,.jpeg,.png" style="width:100%;"
+                                    required />
+                                <p style="font-size:11px; color:var(--gray-mid); margin-top:5px;">
+                                    Accepted: PDF, JPG, PNG (medical proof or prescription)
+                                </p>
+                            </div>
 
-                            </form>
-                        </div>
+                            <div class="text-center mt-20">
+                                <button type="submit" class="btn-primary" style="padding:11px 50px;">
+                                    Submit Request
+                                </button>
+                            </div>
+
+                        </form>
                     </div>
                 </div>
             </div>
