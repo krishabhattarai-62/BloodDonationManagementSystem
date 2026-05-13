@@ -68,9 +68,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                 if (move_uploaded_file($fileTmp, $targetFile)) {
 
+                    // $tesseractPath = (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN')
+                    //     ? '"C:\\Program Files\\Tesseract-OCR\\tesseract.exe"'
+                    //     : 'tesseract';
+
                     $tesseractPath = (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN')
                         ? '"C:\\Program Files\\Tesseract-OCR\\tesseract.exe"'
-                        : 'tesseract';
+                        : '/opt/homebrew/bin/tesseract';
 
                     $escapedInput = escapeshellarg($targetFile);
                     $escapedOutput = escapeshellarg($outputBase);
