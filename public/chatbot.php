@@ -4,6 +4,22 @@ require '../config/db.php';
 
 $apiKey = OPENROUTER_API_KEY;
 
+// FETCH ADMIN CONTACT FROM DB
+
+$adminStmt = $pdo->prepare("
+    SELECT first_name, last_name, email, contact_number, address 
+    FROM users 
+    WHERE role = 'admin' 
+    LIMIT 1
+");
+$adminStmt->execute();
+$admin = $adminStmt->fetch(PDO::FETCH_ASSOC);
+
+$adminName = $admin ? $admin['first_name'] . ' ' . $admin['last_name'] : 'Admin';
+$adminEmail = $admin ? $admin['email'] : 'N/A';
+$adminPhone = $admin ? $admin['contact_number'] : 'N/A';
+$adminAddress = $admin ? $admin['address'] : 'N/A';
+
 // =========================================================
 // USER MESSAGE
 // =========================================================
@@ -38,10 +54,22 @@ $nearbyKeywords = [
 $askingNearby = false;
 
 foreach ($nearbyKeywords as $kw) {
-
     if (str_contains($message, $kw)) {
-
         $askingNearby = true;
+        break;
+    }
+}
+
+// =========================================================
+// DETECT HELP / CONTACT QUERIES
+// =========================================================
+
+$helpKeywords = ['help', 'contact', 'support', 'reach', 'email', 'phone', 'assist', 'problem', 'issue', 'question'];
+$askingHelp = false;
+
+foreach ($helpKeywords as $kw) {
+    if (str_contains($message, $kw)) {
+        $askingHelp = true;
         break;
     }
 }
@@ -53,7 +81,6 @@ foreach ($nearbyKeywords as $kw) {
 $radius = 50;
 
 if (preg_match('/(\d+)\s*km/i', $message, $kmMatch)) {
-
     $radius = intval($kmMatch[1]);
 }
 
@@ -80,7 +107,6 @@ if (preg_match('/\b(ab|a|b|o)[+\-]/i', $message, $match)) {
     if ($askingNearby && $hasLocation) {
 
         $stmt = $pdo->prepare("
-
             SELECT
                 u.first_name,
                 u.last_name,
@@ -94,15 +120,12 @@ if (preg_match('/\b(ab|a|b|o)[+\-]/i', $message, $match)) {
                             1.0,
                             GREATEST(
                                 -1.0,
-
                                 COS(RADIANS(:lat)) *
                                 COS(RADIANS(u.latitude)) *
-
                                 COS(
                                     RADIANS(u.longitude) -
                                     RADIANS(:lng)
                                 ) +
-
                                 SIN(RADIANS(:lat2)) *
                                 SIN(RADIANS(u.latitude))
                             )
@@ -144,25 +167,20 @@ if (preg_match('/\b(ab|a|b|o)[+\-]/i', $message, $match)) {
             $list = "";
 
             foreach ($nearbyDonors as $i => $d) {
-
                 $num = $i + 1;
-
                 $loc = $d['location_name'] ?? 'Unknown location';
-
                 $list .=
                     "$num. {$d['first_name']} {$d['last_name']} — " .
                     "{$d['contact_number']} | " .
-                    "📍 $loc ({$d['distance_km']} km away) | " .
-                    "🩸 {$d['units']} units\n";
+                    "$loc ({$d['distance_km']} km away) | " .
+                    "{$d['units']} units\n";
             }
 
-            $nearbyInfo =
-                "Nearby $blood donors within {$radius} km:\n\n$list";
+            $nearbyInfo = "Nearby $blood donors within {$radius} km:\n\n$list";
 
         } else {
 
-            $nearbyInfo =
-                "No $blood donors found within {$radius} km.";
+            $nearbyInfo = "No $blood donors found within {$radius} km.";
         }
     }
 
@@ -207,9 +225,7 @@ if (preg_match('/\b(ab|a|b|o)[+\-]/i', $message, $match)) {
             $askingForDonor = false;
 
             foreach ($donorKeywords as $keyword) {
-
                 if (str_contains($message, $keyword)) {
-
                     $askingForDonor = true;
                     break;
                 }
@@ -222,7 +238,6 @@ if (preg_match('/\b(ab|a|b|o)[+\-]/i', $message, $match)) {
             if ($askingForDonor) {
 
                 $stmt2 = $pdo->prepare("
-
                     SELECT
                         u.first_name,
                         u.last_name,
@@ -250,34 +265,25 @@ if (preg_match('/\b(ab|a|b|o)[+\-]/i', $message, $match)) {
                     $donorList = "";
 
                     foreach ($donors as $i => $donor) {
-
                         $num = $i + 1;
-
                         $loc = $donor['location_name'] ?? '';
-
-                        $locText = $loc
-                            ? " | 📍 $loc"
-                            : "";
-
+                        $locText = $loc ? " | $loc" : "";
                         $donorList .=
                             "$num. {$donor['first_name']} {$donor['last_name']} — " .
                             "{$donor['contact_number']}$locText\n";
                     }
 
-                    $donorInfo =
-                        "Available donors for $blood:\n\n$donorList";
+                    $donorInfo = "Available donors for $blood:\n\n$donorList";
 
                 } else {
 
-                    $donorInfo =
-                        "No donor details found for $blood.";
+                    $donorInfo = "No donor details found for $blood.";
                 }
             }
 
         } else {
 
-            $bloodInfo =
-                "Blood group $blood is currently NOT available.";
+            $bloodInfo = "Blood group $blood is currently NOT available.";
         }
     }
 }
@@ -326,11 +332,8 @@ $message
 // =========================================================
 
 $freeModels = [
-
     "google/gemma-3-4b-it:free",
-
     "meta-llama/llama-3.1-8b-instruct:free",
-
     "mistralai/mistral-small-3.2-24b-instruct:free"
 ];
 
@@ -345,62 +348,40 @@ $aiResponse = null;
 foreach ($freeModels as $model) {
 
     $data = [
-
         "model" => $model,
-
         "messages" => [
-
             [
                 "role" => "system",
-                "content" =>
-                    "You are a helpful blood donation assistant."
+                "content" => "You are a helpful blood donation assistant."
             ],
-
             [
                 "role" => "user",
                 "content" => $prompt
             ]
         ],
-
         "max_tokens" => 200,
-
         "temperature" => 0.3
     ];
 
     $ch = curl_init($url);
 
     curl_setopt_array($ch, [
-
         CURLOPT_RETURNTRANSFER => true,
-
         CURLOPT_POST => true,
-
         CURLOPT_HTTPHEADER => [
-
             "Content-Type: application/json",
-
             "Authorization: Bearer $apiKey",
-
             "HTTP-Referer: http://localhost"
         ],
-
         CURLOPT_POSTFIELDS => json_encode($data),
-
         CURLOPT_TIMEOUT => 20,
-
         CURLOPT_CONNECTTIMEOUT => 10,
-
         CURLOPT_SSL_VERIFYPEER => false
     ]);
 
     $response = curl_exec($ch);
 
-    // =====================================================
-    // CURL ERROR
-    // =====================================================
-
     if (curl_errno($ch)) {
-
         curl_close($ch);
         continue;
     }
@@ -409,32 +390,19 @@ foreach ($freeModels as $model) {
 
     curl_close($ch);
 
-    if (!$response) {
+    if (!$response)
         continue;
-    }
 
     $result = json_decode($response, true);
 
-    // =====================================================
-    // API ERROR
-    // =====================================================
-
-    if (isset($result['error'])) {
+    if (isset($result['error']))
         continue;
-    }
-
-    // =====================================================
-    // SUCCESS
-    // =====================================================
 
     if (
         $httpCode === 200 &&
         isset($result['choices'][0]['message']['content'])
     ) {
-
-        $aiResponse =
-            trim($result['choices'][0]['message']['content']);
-
+        $aiResponse = trim($result['choices'][0]['message']['content']);
         break;
     }
 }
@@ -465,15 +433,34 @@ if ($aiResponse) {
     // SMART FALLBACK RESPONSES
     // =====================================================
 
+    // Help / Contact Us
+    if ($askingHelp) {
+
+        echo "
+        <strong>Contact and Support</strong><br><br>
+
+        Need help? Reach out to our admin:<br><br>
+
+        Name: <strong>" . htmlspecialchars($adminName) . "</strong><br>
+        Email: <strong>" . htmlspecialchars($adminEmail) . "</strong><br>
+        Phone: <strong>" . htmlspecialchars($adminPhone) . "</strong><br>
+        Address: <strong>" . htmlspecialchars($adminAddress) . "</strong><br><br>
+
+        You can also:<br>
+        - <a href='/public/donor_request.php'>Request Blood</a><br>
+        - <a href='/public/schedule_donation.php'>Schedule a Donation</a><br>
+        - <a href='/public/user_notification.php'>Check Notifications</a>
+        ";
+    }
+
     // Nearby donor asked without blood group
-    if (
+    elseif (
         str_contains($message, 'nearby') ||
         str_contains($message, 'near me') ||
         str_contains($message, 'donor')
     ) {
-
         echo "
-        🩸 Please specify a blood group.<br><br>
+        Please specify a blood group.<br><br>
 
         Example:<br>
         - O+ donor nearby<br>
@@ -487,34 +474,32 @@ if ($aiResponse) {
         $message === 'hi' ||
         $message === 'hey'
     ) {
-
-        echo
-            "👋 Hello! How can I help you with blood donation today?";
+        echo "Hello! How can I help you with blood donation today?";
     }
 
-    // Help
+    // Help command
     elseif ($message === 'help') {
-
         echo "
         You can ask things like:<br><br>
 
-        🩸 Is A+ blood available?<br>
-        📍 Find O- donors nearby<br>
-        🚑 Need AB+ blood within 10 km<br>
-        👨‍⚕️ Show B+ donor contact details
+        - Is A+ blood available?<br>
+        - Find O- donors nearby<br>
+        - Need AB+ blood within 10 km<br>
+        - Show B+ donor contact details<br>
+        - How can I contact support?
         ";
     }
 
     // Unknown queries
     else {
-
         echo "
-        🤖 I can help with blood donation queries.<br><br>
+        I can help with blood donation queries.<br><br>
 
         Try asking:<br>
         - Is O+ blood available?<br>
         - Find A- donors nearby<br>
-        - Need AB+ blood within 5 km
+        - Need AB+ blood within 5 km<br>
+        - How can I contact support?
         ";
     }
 }
