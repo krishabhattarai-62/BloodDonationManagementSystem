@@ -59,12 +59,12 @@ $user_info = $user_info->fetch();
                         <span class="material-icons"></span>🔔
                         <?php if ($unread > 0): ?>
                             <span style="
-                            position:absolute; top:-6px; right:-8px;
-                            background:red; color:white;
-                            border-radius:50%; font-size:11px;
-                            width:18px; height:18px;
-                            display:flex; align-items:center; justify-content:center;
-                            font-weight:bold;">
+                                position:absolute; top:-6px; right:-8px;
+                                background:red; color:white;
+                                border-radius:50%; font-size:11px;
+                                width:18px; height:18px;
+                                display:flex; align-items:center; justify-content:center;
+                                font-weight:bold;">
                                 <?= $unread > 9 ? '9+' : $unread ?>
                             </span>
                         <?php endif; ?>
@@ -113,6 +113,20 @@ $user_info = $user_info->fetch();
                         My Recent Blood Requests
                         <a href="user_request.php" style="color:white; font-size:13px;">View All &#8594;</a>
                     </div>
+
+                    <!-- SEARCH BAR -->
+                    <div style="padding: 12px 16px; border-bottom: 1px solid #eee;">
+                        <input type="text" id="searchInput"
+                            placeholder="Search by patient, blood group, hospital, status..." style="
+                                width: 350px;
+                                padding: 8px 12px;
+                                border: 1px solid #ddd;
+                                border-radius: 6px;
+                                font-size: 0.9em;
+                                outline: none;
+                            " />
+                    </div>
+
                     <div class="card-body">
                         <table>
                             <thead>
@@ -125,7 +139,7 @@ $user_info = $user_info->fetch();
                                     <th>Status</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="requestTableBody">
                                 <?php if (empty($recent)): ?>
                                     <tr>
                                         <td colspan="6" class="text-center">
@@ -134,7 +148,13 @@ $user_info = $user_info->fetch();
                                         </td>
                                     </tr>
                                 <?php else: ?>
-                                    <?php foreach ($recent as $i => $r): ?>
+                                    <?php
+                                    $cls = [
+                                        'pending' => 'badge-warning',
+                                        'approved' => 'badge-success',
+                                        'rejected' => 'badge-danger'
+                                    ];
+                                    foreach ($recent as $i => $r): ?>
                                         <tr>
                                             <td><?= $i + 1 ?></td>
                                             <td><?= htmlspecialchars($r['patient_name']) ?></td>
@@ -142,10 +162,9 @@ $user_info = $user_info->fetch();
                                             <td><?= $r['units'] ?></td>
                                             <td><?= htmlspecialchars($r['hospital']) ?></td>
                                             <td>
-                                                <?php
-                                                $cls = ['pending' => 'badge-warning', 'approved' => 'badge-success', 'rejected' => 'badge-danger'];
-                                                echo "<span class='badge " . $cls[$r['status']] . "'>" . ucfirst($r['status']) . "</span>";
-                                                ?>
+                                                <span class="badge <?= $cls[$r['status']] ?>">
+                                                    <?= ucfirst($r['status']) ?>
+                                                </span>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -160,6 +179,36 @@ $user_info = $user_info->fetch();
     </div>
 
     <?php include '../includes/footer.php'; ?>
+
+    <script>
+        let searchTimer = null;
+
+        document.getElementById('searchInput').addEventListener('input', function () {
+            clearTimeout(searchTimer);
+
+            const q = this.value.trim();
+            const tbody = document.getElementById('requestTableBody');
+
+            searchTimer = setTimeout(() => {
+
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center">Searching...</td></tr>';
+
+                fetch('/BloodDonationManagementSystem/public/search_my_requests.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: 'q=' + encodeURIComponent(q)
+                })
+                    .then(res => res.text())
+                    .then(html => {
+                        tbody.innerHTML = html;
+                    })
+                    .catch(() => {
+                        tbody.innerHTML = '<tr><td colspan="6" class="text-center">Error fetching results.</td></tr>';
+                    });
+
+            }, 300);
+        });
+    </script>
 
 </body>
 

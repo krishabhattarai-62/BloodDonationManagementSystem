@@ -102,6 +102,20 @@ $recent = $pdo->query("
                         Recent Blood Requests
                         <a href="admin_request.php">View All &#8594;</a>
                     </div>
+
+                    <!-- SEARCH BAR -->
+                    <div style="padding: 12px 16px; border-bottom: 1px solid #eee;">
+                        <input type="text" id="searchInput" placeholder="Search by name, blood group, status..." style="
+                                width: 350px;
+                                padding: 8px 12px;
+                                border: 1px solid #ddd;
+                                border-radius: 6px;
+                                font-size: 0.9em;
+                                outline: none;
+                                box-sizing: border-box;
+                            " />
+                    </div>
+
                     <div class="card-body">
                         <table>
                             <thead>
@@ -114,13 +128,19 @@ $recent = $pdo->query("
                                     <th>Status</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="requestTableBody">
                                 <?php if (empty($recent)): ?>
                                     <tr>
                                         <td colspan="6" class="text-center">No requests yet.</td>
                                     </tr>
                                 <?php else: ?>
-                                    <?php foreach ($recent as $i => $r): ?>
+                                    <?php
+                                    $cls = [
+                                        'pending' => 'badge-warning',
+                                        'approved' => 'badge-success',
+                                        'rejected' => 'badge-danger'
+                                    ];
+                                    foreach ($recent as $i => $r): ?>
                                         <tr>
                                             <td><?= $i + 1 ?></td>
                                             <td><?= htmlspecialchars($r['first_name'] . ' ' . $r['last_name']) ?></td>
@@ -128,10 +148,9 @@ $recent = $pdo->query("
                                             <td><?= $r['blood_group'] ?></td>
                                             <td><?= $r['units'] ?></td>
                                             <td>
-                                                <?php
-                                                $cls = ['pending' => 'badge-warning', 'approved' => 'badge-success', 'rejected' => 'badge-danger'];
-                                                echo "<span class='badge " . $cls[$r['status']] . "'>" . ucfirst($r['status']) . "</span>";
-                                                ?>
+                                                <span class="badge <?= $cls[$r['status']] ?>">
+                                                    <?= ucfirst($r['status']) ?>
+                                                </span>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -146,6 +165,38 @@ $recent = $pdo->query("
     </div>
 
     <?php include '../includes/footer.php'; ?>
+
+    <script>
+        let searchTimer = null;
+
+        document.getElementById('searchInput').addEventListener('input', function () {
+            clearTimeout(searchTimer);
+
+            const q = this.value.trim();
+            const tbody = document.getElementById('requestTableBody');
+
+            // Debounce — wait 300ms after user stops typing
+            searchTimer = setTimeout(() => {
+
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center">Searching...</td></tr>';
+
+                fetch('/BloodDonationManagementSystem/public/search_requests.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: 'q=' + encodeURIComponent(q)
+                })
+                    .then(res => res.text())
+                    .then(html => {
+                        tbody.innerHTML = html;
+                    })
+                    .catch(() => {
+                        tbody.innerHTML = '<tr><td colspan="6" class="text-center">Error fetching results.</td></tr>';
+                    });
+
+            }, 300);
+        });
+    </script>
+
 </body>
 
 </html>
