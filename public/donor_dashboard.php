@@ -56,7 +56,7 @@ $user_info = $user_info->fetch();
                 <div class="topbar-right">
                     <a href="user_notification.php"
                         style="position:relative; text-decoration:none; margin-right:15px; font-size:20px;">
-                        <span class="material-icons">notification</span>🔔
+                        <span class="material-icons"></span>🔔
                         <?php if ($unread > 0): ?>
                             <span style="
                             position:absolute; top:-6px; right:-8px;
