@@ -4,7 +4,6 @@
     &copy; <?php echo date("Y"); ?> Blood Donation System. All rights reserved.
 </div>
 
-<!-- <?php include '../includes/toast.php'; ?> -->
 <?php include 'toast.php'; ?>
 
 <div id="chatToggle" onclick="toggleChat()" title="Chat with us">

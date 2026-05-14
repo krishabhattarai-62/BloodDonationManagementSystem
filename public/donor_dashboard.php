@@ -160,6 +160,9 @@ $user_info = $user_info->fetch();
             </div>
         </div>
     </div>
+
+    <?php include '../includes/footer.php'; ?>
+
 </body>
 
 </html>

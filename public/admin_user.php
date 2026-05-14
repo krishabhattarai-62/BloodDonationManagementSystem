@@ -102,6 +102,8 @@ $users = $pdo->query("SELECT * FROM users WHERE role='donor' ORDER BY created_at
             </div>
         </div>
     </div>
+
+    <?php include '../includes/footer.php'; ?>
 </body>
 
 </html>
