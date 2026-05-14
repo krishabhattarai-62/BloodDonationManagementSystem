@@ -17,7 +17,8 @@ if (session_status() === PHP_SESSION_NONE) {
 
     <header class="site-header">
         <a href="/BloodDonationManagementSystem/index.php" class="site-header-brand">
-            <span>&#128987;</span>
+            <img src="/BloodDonationManagementSystem/assets/img/droplet-solid.png" alt="Blood Drop" width="20"
+                height="20" style="vertical-align:middle; margin-right:6px; filter: brightness(0) invert(1);">
             Blood Donation System
         </a>
         <nav class="site-header-nav">
