@@ -19,7 +19,7 @@ CREATE TABLE users (
 );
 
 INSERT INTO users (first_name, last_name, contact_number, address, email, gender, age, blood_group, password, role)
-VALUES ('Admin', 'Admin', '0000000000', 'System', 'admin@test.com', 'male', 18, NULL, '$2y$10$im58ki/UkcWiaK8uTUAA3eOopYnPEwGAGLHGZ6ueZ1dVOooPF5uRq', 'admin');
+VALUES ('Admin', 'Admin', '9864166735', 'System', 'admin@test.com', 'male', 18, NULL, '$2y$10$im58ki/UkcWiaK8uTUAA3eOopYnPEwGAGLHGZ6ueZ1dVOooPF5uRq', 'admin');
 
 CREATE TABLE blood_requests (
     id INT AUTO_INCREMENT PRIMARY KEY,
