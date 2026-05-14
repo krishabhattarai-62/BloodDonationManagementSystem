@@ -76,6 +76,8 @@ while ($row = $stmt->fetch()) {
             </div>
         </div>
     </div>
+
+    <?php include '../includes/footer.php'; ?>
 </body>
 
 </html>

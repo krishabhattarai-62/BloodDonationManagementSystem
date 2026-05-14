@@ -207,6 +207,8 @@ $eligible = $user['eligible'] ?? 0;
 
         renderCalendar();
     </script>
+
+    <?php include '../includes/footer.php'; ?>
 </body>
 
 </html>

@@ -192,6 +192,8 @@ $requests = $pdo->query("
             document.getElementById('rejectModal').style.display = 'none';
         }
     </script>
+
+    <?php include '../includes/footer.php'; ?>
 </body>
 
 </html>
