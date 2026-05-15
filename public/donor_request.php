@@ -46,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // ─────────────────────────────────────────────────────────
 
     $msg = 'success';
-    header("Refresh:1");
+    header("Refresh:3");
 }
 ?>
 <!DOCTYPE html>

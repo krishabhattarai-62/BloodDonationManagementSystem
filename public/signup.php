@@ -157,11 +157,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <h2>Create your account</h2>
 
                 <?php if ($success): ?>
-                    <div class="alert alert-success"><?= htmlspecialchars($success) ?></div>
+                    <script>document.addEventListener('DOMContentLoaded', () => showToast('<?= htmlspecialchars($success) ?>', 'success'));</script>
                 <?php endif; ?>
 
                 <?php if ($error): ?>
-                    <div class="alert alert-error"><?= htmlspecialchars($error) ?></div>
+                    <script>document.addEventListener('DOMContentLoaded', () => showToast('<?= htmlspecialchars($error) ?>', 'error'));</script>
                 <?php endif; ?>
 
                 <form method="POST">

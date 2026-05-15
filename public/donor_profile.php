@@ -211,11 +211,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         <div class="card-body">
 
                             <?php if ($success): ?>
-                                <div class="alert alert-success"><?= htmlspecialchars($success) ?></div>
+                                <script>document.addEventListener('DOMContentLoaded', () => showToast('<?= htmlspecialchars($success) ?>', 'success'));</script>
                             <?php endif; ?>
 
                             <?php if ($error): ?>
-                                <div class="alert alert-error"><?= htmlspecialchars($error) ?></div>
+                                <script>document.addEventListener('DOMContentLoaded', () => showToast('<?= htmlspecialchars($error) ?>', 'error'));</script>
                             <?php endif; ?>
 
                             <form action="donor_profile.php" method="POST" enctype="multipart/form-data">

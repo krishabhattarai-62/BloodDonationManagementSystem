@@ -23,12 +23,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['donation_date'])) {
         $user = $stmt->fetch();
 
         $date = $_POST['donation_date'];
-        // FIX: also save donation_time
         $time = $_POST['donation_time'] ?? null;
 
         $stmt = $pdo->prepare("INSERT INTO donations (user_id, donation_date, donation_time, blood_group, units) VALUES (?,?,?,?,?)");
         $stmt->execute([$uid, $date, $time, $user['blood_group'], $_POST['units']]);
         $msg = 'success';
+        header("Refresh:3");
     }
 }
 
@@ -67,18 +67,15 @@ $eligible = $user['eligible'] ?? 0;
                     <p class="page-title" style="margin-bottom:18px;">Donate Blood</p>
 
                     <?php if ($msg === 'success'): ?>
-                        <div class="alert alert-success">Blood donation scheduled successfully!</div>
+                        <script>document.addEventListener('DOMContentLoaded', () => showToast('Blood donation scheduled successfully!', 'success'));</script>
                     <?php endif; ?>
 
                     <?php if ($eligible == 0): ?>
-                        <div class="alert alert-error">
-                            You are not eligible to donate blood.<br>
-                            Please update your profile first.
-                        </div>
+                        <script>document.addEventListener('DOMContentLoaded', () => showToast('You are not eligible. Please update your profile first.', 'error'));</script>
                     <?php endif; ?>
 
                     <?php if ($dateError): ?>
-                        <div class="alert alert-error">Please select a donation date.</div>
+                        <script>document.addEventListener('DOMContentLoaded', () => showToast('Please select a donation date.', 'error'));</script>
                     <?php endif; ?>
 
                     <div class="form-card">
@@ -102,13 +99,11 @@ $eligible = $user['eligible'] ?? 0;
                                     <strong id="selectedDateDisplay" style="color:var(--red-mid);">None</strong>
                                 </p>
 
-                                <!-- FIX 2: Time picker -->
                                 <div class="form-group">
                                     <label>Preferred Time</label>
                                     <input type="time" name="donation_time" id="donation_time" required />
                                 </div>
 
-                                <!-- FIX 3: Max units changed from 10 to 2 -->
                                 <div class="form-group">
                                     <label>Units to Donate</label>
                                     <input type="number" name="units" min="1" max="2" value="1" required />
@@ -154,7 +149,6 @@ $eligible = $user['eligible'] ?? 0;
             const totalDays = new Date(year, month + 1, 0).getDate();
             const today     = new Date();
 
-            // FIX 1: Calculate the 6-month ceiling
             const maxDate = new Date(today.getFullYear(), today.getMonth() + 6, today.getDate());
 
             for (let i = 0; i < firstDay; i++) {
@@ -168,7 +162,6 @@ $eligible = $user['eligible'] ?? 0;
 
                 const thisDate = new Date(year, month, day);
 
-                // FIX 1: Block past dates AND dates beyond 6 months
                 const isPast   = thisDate < new Date(today.getFullYear(), today.getMonth(), today.getDate());
                 const isTooFar = thisDate > maxDate;
 
@@ -186,7 +179,7 @@ $eligible = $user['eligible'] ?? 0;
 
                         const pad     = n => String(n).padStart(2, '0');
                         const dateStr = year + '-' + pad(month + 1) + '-' + pad(day);
-                        document.getElementById('donation_date').value            = dateStr;
+                        document.getElementById('donation_date').value             = dateStr;
                         document.getElementById('selectedDateDisplay').textContent = dateStr;
                     };
                 }

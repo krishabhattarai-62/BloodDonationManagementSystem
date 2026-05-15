@@ -82,7 +82,7 @@ $requests = $pdo->query("
                 <p class="page-title">Blood Requests</p>
 
                 <?php if (isset($_GET['msg'])): ?>
-                    <div class="alert alert-success">Request status updated successfully.</div>
+                    <script>document.addEventListener('DOMContentLoaded', () => showToast('Request status updated successfully.', 'success'));</script>
                 <?php endif; ?>
 
                 <div class="card">

@@ -60,9 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <h2>Login</h2>
 
                     <?php if ($error): ?>
-                        <div class="alert-error">
-                            <?= $error ?>
-                        </div>
+                        <script>document.addEventListener('DOMContentLoaded', () => showToast('<?= htmlspecialchars($error) ?>', 'error'));</script>
                     <?php endif; ?>
 
                     <form method="POST">
