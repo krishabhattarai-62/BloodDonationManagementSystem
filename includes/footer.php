@@ -204,7 +204,7 @@
             body += "&longitude=" + encodeURIComponent(userLng);
         }
 
-        fetch("/public/chatbot.php", {
+        fetch("/BloodDonationManagementSystem/public/chatbot.php", {
             method: "POST",
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
             body: body
