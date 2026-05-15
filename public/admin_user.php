@@ -51,6 +51,21 @@ $users = $pdo->query("SELECT * FROM users WHERE role='donor' ORDER BY created_at
 
                 <div class="card">
                     <div class="card-header">All Registered Users</div>
+
+                    <!-- SEARCH BAR -->
+                    <div style="padding: 12px 16px; border-bottom: 1px solid #eee;">
+                        <input type="text" id="searchInput" placeholder="Search by name, email, blood group, contact..."
+                            style="
+                            width: 350px;
+                            padding: 8px 12px;
+                            border: 1px solid #ddd;
+                            border-radius: 6px;
+                            font-size: 0.9em;
+                            outline: none;
+                            box-sizing: border-box;
+                        " />
+                    </div>
+
                     <div class="card-body">
                         <table>
                             <thead>
@@ -64,7 +79,7 @@ $users = $pdo->query("SELECT * FROM users WHERE role='donor' ORDER BY created_at
                                     <th>Action</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="userTableBody">
                                 <?php if (empty($users)): ?>
                                     <tr>
                                         <td colspan="7" class="text-center">No users found.</td>
@@ -104,6 +119,32 @@ $users = $pdo->query("SELECT * FROM users WHERE role='donor' ORDER BY created_at
     </div>
 
     <?php include '../includes/footer.php'; ?>
+
+    <script>
+        let searchTimer = null;
+
+        document.getElementById('searchInput').addEventListener('input', function () {
+            clearTimeout(searchTimer);
+
+            const q = this.value.trim();
+            const tbody = document.getElementById('userTableBody');
+
+            searchTimer = setTimeout(() => {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center">Searching...</td></tr>';
+
+                fetch('/BloodDonationManagementSystem/public/search_users.php?q=' + encodeURIComponent(q))
+                    .then(res => res.text())
+                    .then(html => {
+                        tbody.innerHTML = html;
+                    })
+                    .catch(() => {
+                        tbody.innerHTML = '<tr><td colspan="7" class="text-center">Error fetching results.</td></tr>';
+                    });
+
+            }, 300);
+        });
+    </script>
+
 </body>
 
 </html>
