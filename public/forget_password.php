@@ -63,36 +63,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8" />
     <title>Forgot Password - Blood Donation Management</title>
     <link rel="stylesheet" href="../assets/css/style.css" />
+    <?php include '../includes/icon_fonts.php'; ?>
 </head>
 
 <body>
 
     <div class="auth-wrapper">
-        <div class="auth-left">
-            <div class="blood-icon"><img src="../assets/img/droplet-solid.png" height="100" width="100"></div>
-            <h2 style="color:white; font-size:20px;">Forgot Password?</h2>
-            <p style="margin-top:10px;">Reset your password to drop back in and save lives.</p>
-        </div>
+        <div class="auth-card">
 
-        <div class="auth-right">
-            <h2>Reset Password</h2>
+            <div class="auth-left">
+                <div class="blood-icon"><img src="../assets/img/droplet-solid.png" height="100" width="100"></div>
+                <h2>Forgot Password?</h2>
+                <p>Reset your password.</p>
+            </div>
 
-            <?php if ($error): ?>
-                <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
-            <?php endif; ?>
+            <div class="auth-right">
 
-            <form action="forget_password.php" method="POST">
-                <div class="form-group">
-                    <label>Email Address</label>
-                    <input type="email" name="reset_email" placeholder="" required />
+                <div>
+                    <h2>Reset Password</h2>
+
+                    <?php if ($error): ?>
+                        <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
+                    <?php endif; ?>
+
+                    <form action="forget_password.php" method="POST">
+
+                        <div class="auth-field">
+                            <label>Email Address</label>
+                            <input type="email" name="reset_email" required />
+                        </div>
+
+                        <button type="submit" class="btn-primary" style="width:100%; margin-top:8px;">Send OTP</button>
+
+                    </form>
                 </div>
 
-                <button type="submit" class="btn-primary" style="width:100%; margin-top:8px;">Reset Password</button>
+                <div>
+                    <hr class="auth-divider">
+                    <div class="auth-bottom">
+                        <p>Remembered it?</p>
+                        <a href="login.php"><button class="btn-secondary">Login instead</button></a>
+                        <a href="../index.php" class="auth-back-home">Back to Home</a>
+                    </div>
+                    <p class="auth-footer">&copy; <?php echo date("Y"); ?> Blood Donation System</p>
+                </div>
 
-                <p class="text-center" style="margin-top:12px; font-size:13px; color:#888;">
-                    Remembered it? <a href="login.php" style="color:#c0392b;">Login instead</a>
-                </p>
-            </form>
+            </div>
+
         </div>
     </div>
 

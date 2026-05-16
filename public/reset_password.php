@@ -25,7 +25,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $hashed = password_hash($newPassword, PASSWORD_DEFAULT);
         $pdo->prepare("UPDATE users SET password = ? WHERE email = ?")
             ->execute([$hashed, $email]);
-
         // Clean up session
         unset($_SESSION['reset_email'], $_SESSION['otp_verified']);
 
@@ -41,34 +40,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8" />
     <title>Reset Password - Blood Donation Management</title>
     <link rel="stylesheet" href="../assets/css/style.css" />
+    <?php include '../includes/icon_fonts.php'; ?>
 </head>
 
 <body>
     <div class="auth-wrapper">
-        <div class="auth-left">
-            <div class="blood-icon"><img src="../assets/img/droplet-solid.png" height="100" width="100"></div>
-            <p style="margin-top:10px;">Set a new password</p>
-        </div>
-        <div class="auth-right">
-            <h2>New Password</h2>
+        <div class="auth-card">
 
-            <?php if ($error): ?>
-                <div class="alert alert-danger">
-                    <?= htmlspecialchars($error) ?>
-                </div>
-            <?php endif; ?>
+            <div class="auth-left">
+                <div class="blood-icon"><img src="../assets/img/droplet-solid.png" height="100" width="100"></div>
+                <h1>Set New<br>Password</h1>
+                <p>Choose a strong password to keep your account safe.</p>
+            </div>
 
-            <form action="reset_password.php" method="POST">
-                <div class="form-group">
-                    <label>New Password</label>
-                    <input type="password" name="new_password" placeholder="At least 8 characters" required />
+            <div class="auth-right">
+
+                <div>
+                    <h2>New Password</h2>
+
+                    <?php if ($error): ?>
+                        <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
+                    <?php endif; ?>
+
+                    <form action="reset_password.php" method="POST">
+
+                        <div class="auth-field">
+                            <label>New Password</label>
+                            <input type="password" name="new_password" placeholder="At least 8 characters" required />
+                        </div>
+
+                        <div class="auth-field">
+                            <label>Confirm New Password</label>
+                            <input type="password" name="confirm_password" placeholder="Repeat new password" required />
+                        </div>
+
+                        <button type="submit" class="btn-primary" style="width:100%; margin-top:8px;">Update
+                            Password</button>
+
+                    </form>
                 </div>
-                <div class="form-group">
-                    <label>Confirm New Password</label>
-                    <input type="password" name="confirm_password" placeholder="Repeat new password" required />
+
+                <div>
+                    <hr class="auth-divider">
+                    <div class="auth-bottom">
+                        <p>Changed your mind?</p>
+                        <a href="login.php"><button class="btn-secondary">Back to Login</button></a>
+                        <a href="../index.php" class="auth-back-home">Back to Home</a>
+                    </div>
+                    <p class="auth-footer">&copy; <?php echo date("Y"); ?> Blood Donation System</p>
                 </div>
-                <button type="submit" class="btn-primary" style="width:100%;margin-top:8px;">Update Password</button>
-            </form>
+
+            </div>
+
         </div>
     </div>
 </body>
