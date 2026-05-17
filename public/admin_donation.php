@@ -3,6 +3,8 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 require '../config/db.php';
+require_once '../includes/ensure_donations_schema.php';
+ensureDonationsSchema($pdo);
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
@@ -24,6 +26,7 @@ $donations = $pdo->query("
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Donations - Admin</title>
     <link rel="stylesheet" href="../assets/css/style.css" />
+    <?php include '../includes/icon_fonts.php'; ?>
 </head>
 
 <body>
@@ -32,13 +35,7 @@ $donations = $pdo->query("
         <?php include '../includes/admin_sidebar.php'; ?>
 
         <div class="main-content">
-            <div class="topbar">
-                <h2>Blood Donation Management</h2>
-                <div class="topbar-right">
-                    <span>&#128100; <?= htmlspecialchars($_SESSION['first_name']) ?></span>
-                    <a href="logout.php">Logout</a>
-                </div>
-            </div>
+            <?php include '../includes/dashboard_topbar.php'; ?>
 
             <div class="page-content">
                 <p class="page-title">Scheduled Donations</p>

@@ -1,10 +1,9 @@
 <?php
 
+require_once '../includes/functions.php';
 require '../config/db.php';
 
 $apiKey = OPENROUTER_API_KEY;
-
-// FETCH ADMIN CONTACT FROM DB
 
 $adminStmt = $pdo->prepare("
     SELECT first_name, last_name, email, contact_number, address 
@@ -20,24 +19,11 @@ $adminEmail = $admin ? $admin['email'] : 'N/A';
 $adminPhone = $admin ? $admin['contact_number'] : 'N/A';
 $adminAddress = $admin ? $admin['address'] : 'N/A';
 
-// =========================================================
-// USER MESSAGE
-// =========================================================
-
 $message = strtolower(trim($_POST['message'] ?? ''));
-
-// =========================================================
-// USER LOCATION
-// =========================================================
-
 $userLat = floatval($_POST['latitude'] ?? 0);
 $userLng = floatval($_POST['longitude'] ?? 0);
 
 $hasLocation = ($userLat !== 0.0 && $userLng !== 0.0);
-
-// =========================================================
-// DETECT NEARBY SEARCH
-// =========================================================
 
 $nearbyKeywords = [
     'nearby',
@@ -51,32 +37,10 @@ $nearbyKeywords = [
     'distance'
 ];
 
-$askingNearby = false;
-
-foreach ($nearbyKeywords as $kw) {
-    if (str_contains($message, $kw)) {
-        $askingNearby = true;
-        break;
-    }
-}
-
-// =========================================================
-// DETECT HELP / CONTACT QUERIES
-// =========================================================
+$askingNearby = containsKeyword($message, $nearbyKeywords);
 
 $helpKeywords = ['help', 'contact', 'support', 'reach', 'email', 'phone', 'assist', 'problem', 'issue', 'question'];
-$askingHelp = false;
-
-foreach ($helpKeywords as $kw) {
-    if (str_contains($message, $kw)) {
-        $askingHelp = true;
-        break;
-    }
-}
-
-// =========================================================
-// EXTRACT SEARCH RADIUS
-// =========================================================
+$askingHelp = containsKeyword($message, $helpKeywords);
 
 $radius = 50;
 
@@ -84,26 +48,15 @@ if (preg_match('/(\d+)\s*km/i', $message, $kmMatch)) {
     $radius = intval($kmMatch[1]);
 }
 
-// =========================================================
-// VARIABLES
-// =========================================================
-
 $bloodInfo = "";
 $donorInfo = "";
 $nearbyInfo = "";
-
-// =========================================================
-// DETECT BLOOD GROUP
-// =========================================================
 
 if (preg_match('/\b(ab|a|b|o)[+\-]/i', $message, $match)) {
 
     $blood = strtoupper($match[0]);
 
-    // =====================================================
-    // CASE 1: NEARBY DONOR SEARCH
-    // =====================================================
-
+    // Nearby donor search requires a blood group and coordinates.
     if ($askingNearby && $hasLocation) {
 
         $stmt = $pdo->prepare("
@@ -182,12 +135,8 @@ if (preg_match('/\b(ab|a|b|o)[+\-]/i', $message, $match)) {
 
             $nearbyInfo = "No $blood donors found within {$radius} km.";
         }
-    }
 
-    // =====================================================
-    // CASE 2: GENERAL BLOOD AVAILABILITY
-    // =====================================================
-    else {
+    } else {
 
         $stmt = $pdo->prepare("
             SELECT SUM(units) as units
@@ -206,10 +155,6 @@ if (preg_match('/\b(ab|a|b|o)[+\-]/i', $message, $match)) {
                 $row['units'] .
                 " units in stock.";
 
-            // =================================================
-            // CHECK IF ASKING FOR DONOR DETAILS
-            // =================================================
-
             $donorKeywords = [
                 'donor',
                 'contact',
@@ -222,18 +167,7 @@ if (preg_match('/\b(ab|a|b|o)[+\-]/i', $message, $match)) {
                 'person'
             ];
 
-            $askingForDonor = false;
-
-            foreach ($donorKeywords as $keyword) {
-                if (str_contains($message, $keyword)) {
-                    $askingForDonor = true;
-                    break;
-                }
-            }
-
-            // =================================================
-            // GET DONOR DETAILS
-            // =================================================
+            $askingForDonor = containsKeyword($message, $donorKeywords);
 
             if ($askingForDonor) {
 
@@ -288,10 +222,6 @@ if (preg_match('/\b(ab|a|b|o)[+\-]/i', $message, $match)) {
     }
 }
 
-// =========================================================
-// BUILD AI PROMPT
-// =========================================================
-
 $dbData = trim("$nearbyInfo\n$bloodInfo\n$donorInfo");
 
 if ($dbData) {
@@ -327,89 +257,77 @@ $message
 ";
 }
 
-// =========================================================
-// OPENROUTER FREE MODELS
-// =========================================================
-
 $freeModels = [
     "google/gemma-3-4b-it:free",
     "meta-llama/llama-3.1-8b-instruct:free",
     "mistralai/mistral-small-3.2-24b-instruct:free"
 ];
 
-// =========================================================
-// OPENROUTER API REQUEST
-// =========================================================
-
 $url = "https://openrouter.ai/api/v1/chat/completions";
-
 $aiResponse = null;
 
-foreach ($freeModels as $model) {
+if ($apiKey) {
+    foreach ($freeModels as $model) {
 
-    $data = [
-        "model" => $model,
-        "messages" => [
-            [
-                "role" => "system",
-                "content" => "You are a helpful blood donation assistant."
+        $data = [
+            "model" => $model,
+            "messages" => [
+                [
+                    "role" => "system",
+                    "content" => "You are a helpful blood donation assistant."
+                ],
+                [
+                    "role" => "user",
+                    "content" => $prompt
+                ]
             ],
-            [
-                "role" => "user",
-                "content" => $prompt
-            ]
-        ],
-        "max_tokens" => 200,
-        "temperature" => 0.3
-    ];
+            "max_tokens" => 200,
+            "temperature" => 0.3
+        ];
 
-    $ch = curl_init($url);
+        $ch = curl_init($url);
 
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_POST => true,
-        CURLOPT_HTTPHEADER => [
-            "Content-Type: application/json",
-            "Authorization: Bearer $apiKey",
-            "HTTP-Referer: http://localhost"
-        ],
-        CURLOPT_POSTFIELDS => json_encode($data),
-        CURLOPT_TIMEOUT => 20,
-        CURLOPT_CONNECTTIMEOUT => 10,
-        CURLOPT_SSL_VERIFYPEER => false
-    ]);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_HTTPHEADER => [
+                "Content-Type: application/json",
+                "Authorization: Bearer $apiKey",
+                "HTTP-Referer: http://localhost"
+            ],
+            CURLOPT_POSTFIELDS => json_encode($data),
+            CURLOPT_TIMEOUT => 20,
+            CURLOPT_CONNECTTIMEOUT => 10,
+            CURLOPT_SSL_VERIFYPEER => false
+        ]);
 
-    $response = curl_exec($ch);
+        $response = curl_exec($ch);
 
-    if (curl_errno($ch)) {
+        if (curl_errno($ch)) {
+            curl_close($ch);
+            continue;
+        }
+
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
         curl_close($ch);
-        continue;
-    }
 
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        if (!$response) {
+            continue;
+        }
 
-    curl_close($ch);
+        $result = json_decode($response, true);
 
-    if (!$response)
-        continue;
+        if (isset($result['error'])) {
+            continue;
+        }
 
-    $result = json_decode($response, true);
-
-    if (isset($result['error']))
-        continue;
-
-    if (
-        $httpCode === 200 &&
-        isset($result['choices'][0]['message']['content'])
-    ) {
-        $aiResponse = trim($result['choices'][0]['message']['content']);
-        break;
+        if ($httpCode === 200 && isset($result['choices'][0]['message']['content'])) {
+            $aiResponse = trim($result['choices'][0]['message']['content']);
+            break;
+        }
     }
 }
-
-// =========================================================
-// FINAL OUTPUT
-// =========================================================
 
 if ($aiResponse) {
 
@@ -429,11 +347,8 @@ if ($aiResponse) {
 
 } else {
 
-    // =====================================================
-    // SMART FALLBACK RESPONSES
-    // =====================================================
+    // static fallback responses when the AI and DB both come up empty
 
-    // Help / Contact Us
     if ($askingHelp) {
 
         echo "
@@ -451,10 +366,8 @@ if ($aiResponse) {
         - <a href='/public/schedule_donation.php'>Schedule a Donation</a><br>
         - <a href='/public/user_notification.php'>Check Notifications</a>
         ";
-    }
 
-    // Nearby donor asked without blood group
-    elseif (
+    } elseif (
         str_contains($message, 'nearby') ||
         str_contains($message, 'near me') ||
         str_contains($message, 'donor')
@@ -466,19 +379,13 @@ if ($aiResponse) {
         - O+ donor nearby<br>
         - A- blood within 10 km
         ";
-    }
 
-    // Greetings
-    elseif (
-        $message === 'hello' ||
-        $message === 'hi' ||
-        $message === 'hey'
-    ) {
+    } elseif ($message === 'hello' || $message === 'hi' || $message === 'hey') {
+
         echo "Hello! How can I help you with blood donation today?";
-    }
 
-    // Help command
-    elseif ($message === 'help') {
+    } elseif ($message === 'help') {
+
         echo "
         You can ask things like:<br><br>
 
@@ -488,10 +395,9 @@ if ($aiResponse) {
         - Show B+ donor contact details<br>
         - How can I contact support?
         ";
-    }
 
-    // Unknown queries
-    else {
+    } else {
+
         echo "
         I can help with blood donation queries.<br><br>
 

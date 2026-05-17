@@ -13,6 +13,7 @@ $uid = $_SESSION['user_id'];
 $msg = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
     $patient_name = trim($_POST['patient_name']);
     $blood_group = $_POST['blood_group'];
     $units = (int) $_POST['units'];
@@ -35,7 +36,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt = $pdo->prepare("INSERT INTO blood_requests (user_id, patient_name, blood_group, units, hospital, contact, document) VALUES (?,?,?,?,?,?,?)");
     $stmt->execute([$uid, $patient_name, $blood_group, $units, $hospital, $contact, $document_path]);
 
-    // ── Notify admin ──────────────────────────────────────────
     $requesterName = $_SESSION['first_name'];
     $admin = $pdo->query("SELECT id FROM users WHERE role='admin' LIMIT 1")->fetch();
     if ($admin) {
@@ -43,7 +43,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")
             ->execute([$admin['id'], $msg_text]);
     }
-    // ─────────────────────────────────────────────────────────
 
     $msg = 'success';
     header("Refresh:3");
@@ -57,6 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Request Blood - Blood Donation Management System</title>
     <link rel="stylesheet" href="../assets/css/style.css" />
+    <?php include '../includes/icon_fonts.php'; ?>
 </head>
 
 <body>
@@ -65,18 +65,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php include '../includes/donor_sidebar.php'; ?>
 
         <div class="main-content">
-            <div class="topbar">
-                <h2>Blood Donation Management</h2>
-                <div class="topbar-right">
-                    <span>&#128100; <?= htmlspecialchars($_SESSION['first_name']) ?></span>
-                    <a href="logout.php">Logout</a>
-                </div>
-            </div>
+            <?php include '../includes/dashboard_topbar.php'; ?>
 
-            <!-- FIXED: centered wrapper for form -->
             <div class="request-form-wrapper">
-                <div class="form-card" style="max-width:560px; width:100%;">
-                    <div class="card-header">Request Blood</div>
+                <div class="request-form-panel">
+                    <p class="page-title" style="margin-bottom:18px;">Request Blood</p>
+
+                    <div class="form-card" style="max-width:560px; width:100%;">
+                    <div class="card-header">Fill in the details</div>
 
                     <?php if ($msg === 'success'): ?>
                         <script>document.addEventListener('DOMContentLoaded', () => showToast('Blood request submitted successfully!', 'success'));</script>
@@ -137,6 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         </form>
                     </div>
+                </div>
                 </div>
             </div>
         </div>

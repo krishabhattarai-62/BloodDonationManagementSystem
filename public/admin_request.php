@@ -2,49 +2,43 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+require_once '../includes/functions.php';
 require '../config/db.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
-    exit;
-}
+requireLogin();
 
 if (isset($_GET['action']) && isset($_GET['id'])) {
     if ($_GET['action'] === 'approve') {
-        // Get request info
         $stmt = $pdo->prepare("SELECT * FROM blood_requests WHERE id=?");
         $stmt->execute([(int) $_GET['id']]);
         $req = $stmt->fetch();
 
-        // Update status
-        $pdo->prepare("UPDATE blood_requests SET status='approved', remarks=NULL WHERE id=?")->execute([(int) $_GET['id']]);
+        if ($req) {
+            $pdo->prepare("UPDATE blood_requests SET status='approved', remarks=NULL WHERE id=?")->execute([(int) $_GET['id']]);
 
-        // Notify user
-        $msg = "Your blood request for patient '{$req['patient_name']}' has been approved.";
-        $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$req['user_id'], $msg]);
+            $msg = "Your blood request for patient '{$req['patient_name']}' has been approved.";
+            $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$req['user_id'], $msg]);
+        }
 
-        header("Location: admin_request.php?msg=updated");
-        exit;
+        redirectTo("admin_request.php?msg=updated");
     }
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reject_id'])) {
     $remarks = trim($_POST['remarks']);
 
-    // Get request info
     $stmt = $pdo->prepare("SELECT * FROM blood_requests WHERE id=?");
     $stmt->execute([(int) $_POST['reject_id']]);
     $req = $stmt->fetch();
 
-    // Update status
-    $pdo->prepare("UPDATE blood_requests SET status='rejected', remarks=? WHERE id=?")->execute([$remarks, (int) $_POST['reject_id']]);
+    if ($req) {
+        $pdo->prepare("UPDATE blood_requests SET status='rejected', remarks=? WHERE id=?")->execute([$remarks, (int) $_POST['reject_id']]);
 
-    // Notify user
-    $msg = "Your blood request for patient '{$req['patient_name']}' has been rejected. Reason: {$remarks}";
-    $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$req['user_id'], $msg]);
+        $msg = "Your blood request for patient '{$req['patient_name']}' has been rejected. Reason: {$remarks}";
+        $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$req['user_id'], $msg]);
+    }
 
-    header("Location: admin_request.php?msg=updated");
-    exit;
+    redirectTo("admin_request.php?msg=updated");
 }
 
 $requests = $pdo->query("
@@ -62,6 +56,7 @@ $requests = $pdo->query("
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Blood Requests - Admin</title>
     <link rel="stylesheet" href="../assets/css/style.css" />
+    <?php include '../includes/icon_fonts.php'; ?>
 </head>
 
 <body>
@@ -70,13 +65,7 @@ $requests = $pdo->query("
         <?php include '../includes/admin_sidebar.php'; ?>
 
         <div class="main-content">
-            <div class="topbar">
-                <h2>Blood Donation Management</h2>
-                <div class="topbar-right">
-                    <span>&#128100; <?= htmlspecialchars($_SESSION['first_name']) ?></span>
-                    <a href="logout.php">Logout</a>
-                </div>
-            </div>
+            <?php include '../includes/dashboard_topbar.php'; ?>
 
             <div class="page-content">
                 <p class="page-title">Blood Requests</p>
@@ -127,22 +116,22 @@ $requests = $pdo->query("
                                                 <?php endif; ?>
                                             </td>
                                             <td>
-                                                <?php
-                                                $cls = ['pending' => 'badge-warning', 'approved' => 'badge-success', 'rejected' => 'badge-danger'];
-                                                echo "<span class='badge " . $cls[$r['status']] . "'>" . ucfirst($r['status']) . "</span>";
-                                                ?>
+                                                <span class="badge <?= statusBadgeClass($r['status']) ?>">
+                                                    <?= ucfirst(h($r['status'])) ?>
+                                                </span>
                                             </td>
                                             <td>
                                                 <?php if ($r['status'] === 'pending'): ?>
-                                                    <a href="admin_request.php?action=approve&id=<?= $r['id'] ?>"
-                                                        class="btn-secondary"
-                                                        style="padding:4px 10px; font-size:12px; margin-right:4px;">
-                                                        Approve
-                                                    </a>
-                                                    <button onclick="openRejectModal(<?= $r['id'] ?>)"
-                                                        style="color:var(--red-mid); background:none; border:none; font-size:13px; font-weight:600; cursor:pointer;">
-                                                        Reject
-                                                    </button>
+                                                    <div class="admin-request-actions">
+                                                        <a href="admin_request.php?action=approve&id=<?= $r['id'] ?>"
+                                                            class="btn-secondary btn-table-action">
+                                                            Approve
+                                                        </a>
+                                                        <button type="button" onclick="openRejectModal(<?= $r['id'] ?>)"
+                                                            class="btn-table-action btn-reject-action">
+                                                            Reject
+                                                        </button>
+                                                    </div>
                                                 <?php else: ?>
                                                     <span style="color:var(--gray-mid); font-size:12px;">&#8212;</span>
                                                 <?php endif; ?>
@@ -159,7 +148,7 @@ $requests = $pdo->query("
         </div>
     </div>
 
-    <!-- Reject Modal -->
+    <!-- Reject modal -->
     <div id="rejectModal"
         style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
         <div style="background:#fff; border-radius:10px; padding:30px; width:400px; max-width:90%;">

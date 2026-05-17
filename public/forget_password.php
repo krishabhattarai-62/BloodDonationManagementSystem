@@ -23,11 +23,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $otp = rand(100000, 999999);
 
-        // Save OTP to DB
         $stmt = $pdo->prepare("UPDATE users SET otp = ? WHERE email = ?");
         $stmt->execute([$otp, $email]);
 
-        // Store email in session to carry across pages
         $_SESSION['reset_email'] = $email;
 
         try {

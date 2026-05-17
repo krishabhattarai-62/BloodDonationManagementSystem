@@ -23,6 +23,7 @@ $requests = $requests->fetchAll();
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>My Requests - Blood Donation</title>
     <link rel="stylesheet" href="../assets/css/style.css" />
+    <?php include '../includes/icon_fonts.php'; ?>
 </head>
 
 <body>
@@ -31,13 +32,7 @@ $requests = $requests->fetchAll();
         <?php include '../includes/donor_sidebar.php'; ?>
 
         <div class="main-content">
-            <div class="topbar">
-                <h2>Blood Donation Management</h2>
-                <div class="topbar-right">
-                    <span>&#128100; <?= htmlspecialchars($_SESSION['first_name']) ?></span>
-                    <a href="logout.php">Logout</a>
-                </div>
-            </div>
+            <?php include '../includes/dashboard_topbar.php'; ?>
 
             <div class="page-content">
                 <p class="page-title">My Blood Requests</p>

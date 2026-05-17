@@ -26,6 +26,7 @@ $users = $pdo->query("SELECT * FROM users WHERE role='donor' ORDER BY created_at
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Users - Admin Panel</title>
     <link rel="stylesheet" href="../assets/css/style.css" />
+    <?php include '../includes/icon_fonts.php'; ?>
 </head>
 
 <body>
@@ -34,13 +35,7 @@ $users = $pdo->query("SELECT * FROM users WHERE role='donor' ORDER BY created_at
         <?php include '../includes/admin_sidebar.php'; ?>
 
         <div class="main-content">
-            <div class="topbar">
-                <h2>Blood Donation Management</h2>
-                <div class="topbar-right">
-                    <span>&#128100; <?= htmlspecialchars($_SESSION['first_name']) ?></span>
-                    <a href="logout.php">Logout</a>
-                </div>
-            </div>
+            <?php include '../includes/dashboard_topbar.php'; ?>
 
             <div class="page-content">
                 <p class="page-title">Manage Users</p>
@@ -49,22 +44,17 @@ $users = $pdo->query("SELECT * FROM users WHERE role='donor' ORDER BY created_at
                     <div class="alert alert-success">User deleted successfully.</div>
                 <?php endif; ?>
 
+                <div class="dashboard-search-panel">
+                    <div class="dashboard-search-panel-label">Search</div>
+                    <div class="dashboard-search-wrap">
+                        <i class="fa-solid fa-magnifying-glass search-field-icon"></i>
+                        <input type="text" id="searchInput" class="dashboard-search-input"
+                            placeholder="Search by name, email, blood group, contact..." />
+                    </div>
+                </div>
+
                 <div class="card">
                     <div class="card-header">All Registered Users</div>
-
-                    <!-- SEARCH BAR -->
-                    <div style="padding: 12px 16px; border-bottom: 1px solid #eee;">
-                        <input type="text" id="searchInput" placeholder="Search by name, email, blood group, contact..."
-                            style="
-                            width: 350px;
-                            padding: 8px 12px;
-                            border: 1px solid #ddd;
-                            border-radius: 6px;
-                            font-size: 0.9em;
-                            outline: none;
-                            box-sizing: border-box;
-                        " />
-                    </div>
 
                     <div class="card-body">
                         <table>

@@ -4,9 +4,6 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 require '../config/db.php';
 
-require_once '../includes/notification.php';
-$unread = getUnreadCount($pdo, $_SESSION['user_id']);
-
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit;
@@ -43,6 +40,7 @@ $user_info = $user_info->fetch();
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dashboard - Blood Donation</title>
     <link rel="stylesheet" href="../assets/css/style.css" />
+    <?php include '../includes/icon_fonts.php'; ?>
 </head>
 
 <body>
@@ -51,28 +49,7 @@ $user_info = $user_info->fetch();
         <?php include '../includes/donor_sidebar.php'; ?>
 
         <div class="main-content">
-            <div class="topbar">
-                <h2>Blood Donation Management</h2>
-                <div class="topbar-right">
-                    <a href="user_notification.php"
-                        style="position:relative; text-decoration:none; margin-right:15px; font-size:20px;">
-                        <span class="material-icons"></span>🔔
-                        <?php if ($unread > 0): ?>
-                            <span style="
-                                position:absolute; top:-6px; right:-8px;
-                                background:red; color:white;
-                                border-radius:50%; font-size:11px;
-                                width:18px; height:18px;
-                                display:flex; align-items:center; justify-content:center;
-                                font-weight:bold;">
-                                <?= $unread > 9 ? '9+' : $unread ?>
-                            </span>
-                        <?php endif; ?>
-                    </a>
-                    <span>&#128100; <?= htmlspecialchars($_SESSION['first_name']) ?></span>
-                    <a href="logout.php" onclick="return confirm('Are you sure you want to logout?')">Logout</a>
-                </div>
-            </div>
+            <?php include '../includes/dashboard_topbar.php'; ?>
 
             <div class="page-content">
                 <p class="page-title">
@@ -81,21 +58,21 @@ $user_info = $user_info->fetch();
 
                 <div class="stats-grid">
                     <div class="stat-card">
-                        <div class="stat-icon">&#129656;</div>
+                        <div class="stat-icon"><i class="fa-solid fa-droplet"></i></div>
                         <div class="stat-info">
                             <h3><?= $user_info['blood_group'] ?? '—' ?></h3>
                             <p>My Blood Group</p>
                         </div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-icon">&#128203;</div>
+                        <div class="stat-icon"><i class="fa-solid fa-clipboard-list"></i></div>
                         <div class="stat-info">
                             <h3><?= $req_count ?></h3>
                             <p>My Requests</p>
                         </div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-icon">&#128197;</div>
+                        <div class="stat-icon"><i class="fa-solid fa-calendar"></i></div>
                         <div class="stat-info">
                             <h3><?= $don_count ?></h3>
                             <p>Donations Scheduled</p>
@@ -108,23 +85,19 @@ $user_info = $user_info->fetch();
                     <a href="schedule_donation.php"><button class="btn-secondary">Donate Blood</button></a>
                 </div>
 
+                <div class="dashboard-search-panel">
+                    <div class="dashboard-search-panel-label">Search</div>
+                    <div class="dashboard-search-wrap">
+                        <i class="fa-solid fa-magnifying-glass search-field-icon"></i>
+                        <input type="text" id="searchInput" class="dashboard-search-input"
+                            placeholder="Search by patient, blood group, hospital, status..." />
+                    </div>
+                </div>
+
                 <div class="card">
                     <div class="card-header">
                         My Recent Blood Requests
-                        <a href="user_request.php" style="color:white; font-size:13px;">View All &#8594;</a>
-                    </div>
-
-                    <!-- SEARCH BAR -->
-                    <div style="padding: 12px 16px; border-bottom: 1px solid #eee;">
-                        <input type="text" id="searchInput"
-                            placeholder="Search by patient, blood group, hospital, status..." style="
-                                width: 350px;
-                                padding: 8px 12px;
-                                border: 1px solid #ddd;
-                                border-radius: 6px;
-                                font-size: 0.9em;
-                                outline: none;
-                            " />
+                        <a href="user_request.php" style="color:white; font-size:13px;">View All <i class="fa-solid fa-arrow-right"></i></a>
                     </div>
 
                     <div class="card-body">

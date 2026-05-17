@@ -8,6 +8,7 @@ CREATE TABLE users (
     contact_number VARCHAR(20) NOT NULL,
     address VARCHAR(255) NOT NULL,
     otp VARCHAR(255) NULL,
+    email_verified TINYINT(1) NOT NULL DEFAULT 0,
     email VARCHAR(150) NOT NULL UNIQUE,
     gender ENUM('male', 'female', 'other') NOT NULL,
     age INT NOT NULL,
@@ -18,8 +19,13 @@ CREATE TABLE users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+ALTER TABLE users 
+ADD COLUMN location_name VARCHAR(255) DEFAULT NULL,
+ADD COLUMN latitude DECIMAL(10, 8) DEFAULT NULL,
+ADD COLUMN longitude DECIMAL(11, 8) DEFAULT NULL;
+
 INSERT INTO users (first_name, last_name, contact_number, address, email, gender, age, blood_group, password, role)
-VALUES ('Admin', 'Admin', '9864166735', 'System', 'admin@test.com', 'male', 18, NULL, '$2y$10$im58ki/UkcWiaK8uTUAA3eOopYnPEwGAGLHGZ6ueZ1dVOooPF5uRq', 'admin');
+VALUES ('Admin', 'Admin', '0000000000', 'System', 'admin@test.com', 'male', 18, NULL, '$2y$10$im58ki/UkcWiaK8uTUAA3eOopYnPEwGAGLHGZ6ueZ1dVOooPF5uRq', 'admin');
 
 CREATE TABLE blood_requests (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -35,11 +41,26 @@ CREATE TABLE blood_requests (
     FOREIGN KEY (user_id) REFERENCES users (id)
 );
 
+ALTER TABLE blood_requests ADD COLUMN remarks TEXT NULL;
+
 CREATE TABLE donations (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     donation_date date NOT NULL,
+    blood_group varchar(255) DEFAULT NULL,
+    units INT DEFAULT 0,
     status enum('scheduled','completed','cancelled') DEFAULT 'scheduled',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users (id)
+);
+
+ALTER TABLE donations ADD COLUMN donation_time TIME NULL AFTER donation_date;
+
+CREATE TABLE notifications (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    message TEXT NOT NULL,
+    is_read TINYINT(1) DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );

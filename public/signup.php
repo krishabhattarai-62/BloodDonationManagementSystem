@@ -3,12 +3,10 @@ require_once '../includes/functions.php';
 require_once '../config/db.php';
 
 if (isset($_SESSION['user_id'])) {
-    header("Location: dashboard.php");
-    exit();
+    redirectTo('dashboard.php');
 }
 
 $error = "";
-$success = "";
 $first_name = "";
 $last_name = "";
 $contact_number = "";
@@ -48,12 +46,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     } elseif (!is_numeric($age) || $age < 18 || $age > 65) {
         $error = "Age must be between 18 and 65!";
     } elseif (!preg_match('/^(98|97)[0-9]{8}$/', $contact_number)) {
-        $error = "Invalid contact number! Use Nepal format (98XXXXXXXX or 97XXXXXXXX).";
+        $error = "Invalid contact number! Number should not be more or less than 10 following the Nepal format (98XXXXXXXX or 97XXXXXXXX).";
     } elseif (!validatePassword($password)) {
         $error = "Password must be at least 8 characters!";
     } elseif ($password !== $confirm_password) {
         $error = "Passwords do not match!";
     } else {
+
         $contactCheck = $pdo->prepare("SELECT id FROM users WHERE contact_number = ?");
         $contactCheck->execute([$contact_number]);
         if ($contactCheck->fetch()) {
@@ -65,6 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
             if ($existing && $existing['email_verified'] == 1) {
                 $error = "This email is already registered. Please login.";
+
             } elseif ($existing && $existing['email_verified'] == 0) {
                 $otp = rand(100000, 999999);
                 $pdo->prepare("UPDATE users SET otp = ? WHERE email = ?")
@@ -74,11 +74,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $_SESSION['verify_email'] = $email;
                     $_SESSION['verify_first_name'] = $first_name;
                     $_SESSION['verify_flow'] = 'signup';
-                    header("Location: verify_email.php");
-                    exit();
+                    redirectTo('verify_email.php');
                 } else {
                     $error = "Failed to send verification email. Please try again.";
                 }
+
             } else {
                 $otp = rand(100000, 999999);
 
@@ -103,13 +103,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $_SESSION['verify_first_name'] = $first_name;
                     $_SESSION['verify_flow'] = 'signup';
 
-                    if (sendVerificationOTP($email, $first_name, $otp)) {
-                        header("Location: verify_email.php");
-                        exit();
-                    } else {
-                        header("Location: verify_email.php");
-                        exit();
-                    }
+                    sendVerificationOTP($email, $first_name, $otp);
+                    redirectTo('verify_email.php');
                 } else {
                     $error = "Registration failed. Email may already be in use.";
                 }
@@ -126,6 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sign Up - Blood Donation System</title>
     <link rel="stylesheet" href="../assets/css/style.css" />
+    <?php include '../includes/icon_fonts.php'; ?>
     <style>
         .auth-field label::after,
         .auth-field-row>div label::after,
@@ -134,7 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             color: var(--red-mid);
         }
 
-        /* Exclude location label and gender label from asterisk if needed */
+        /* Optional fields do not show the required marker. */
         .no-asterisk::after {
             content: "" !important;
         }
@@ -142,6 +138,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 </head>
 
 <body>
+    <header class="site-header">
+        <a href="../index.php" class="site-header-brand">
+            <img src="../assets/img/droplet-solid.png" alt="Blood Drop" width="20" height="20"
+                style="vertical-align:middle; margin-right:6px; filter: brightness(0) invert(1);">
+            Blood Donation System
+        </a>
+        <nav class="site-header-nav">
+            <a href="../index.php">Home</a>
+            <a href="login.php">Login</a>
+            <a href="signup.php" class="nav-cta">Register</a>
+        </nav>
+    </header>
+
     <div class="auth-wrapper">
         <div class="auth-card">
 
@@ -155,10 +164,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
             <div class="auth-right">
                 <h2>Create your account</h2>
-
-                <?php if ($success): ?>
-                    <script>document.addEventListener('DOMContentLoaded', () => showToast('<?= htmlspecialchars($success) ?>', 'success'));</script>
-                <?php endif; ?>
 
                 <?php if ($error): ?>
                     <script>document.addEventListener('DOMContentLoaded', () => showToast('<?= htmlspecialchars($error) ?>', 'error'));</script>
@@ -221,7 +226,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         <input type="password" name="confirm_password" placeholder="Repeat your password" required />
                     </div>
 
-                    <!-- Location Field -->
                     <div class="auth-field">
                         <label class="no-asterisk">Your Location</label>
                         <div style="display:flex; gap:8px; align-items:center;">
@@ -231,7 +235,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                 style="flex:1; background:var(--input-bg, #f9f9f9); cursor:default;" />
                             <button type="button" id="detect-location-btn"
                                 style="white-space:nowrap; padding:10px 14px;" class="btn-primary">
-                                📍 Detect
+                                <i class="fa-solid fa-location-dot"></i> Detect
                             </button>
                         </div>
                         <small id="location-status"
@@ -243,7 +247,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <input type="hidden" name="csrf_token" value="<?= generateCSRF() ?>">
 
                     <div class="auth-form-actions">
-                        <a href="login.php"><button type="button" class="btn-back">&#8592; Back</button></a>
+                        <a href="login.php"><button type="button" class="btn-back"><i
+                                    class="fa-solid fa-arrow-left"></i> Back</button></a>
                         <button type="submit" class="btn-primary">Create Account</button>
                     </div>
 
@@ -255,6 +260,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     </div>
 
     <script>
+        const detectBtnHtml = '<i class="fa-solid fa-location-dot"></i> Detect';
+        const detectingBtnHtml = '<i class="fa-solid fa-hourglass-half"></i> Detecting...';
+
         document.getElementById('detect-location-btn').addEventListener('click', function () {
             const btn = this;
             const status = document.getElementById('location-status');
@@ -267,7 +275,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
 
             btn.disabled = true;
-            btn.textContent = '⏳ Detecting...';
+            btn.innerHTML = detectingBtnHtml;
             status.style.color = 'var(--text-muted)';
             status.textContent = 'Getting your location...';
 
@@ -280,6 +288,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     document.getElementById('longitude').value = lng;
 
                     try {
+                        // reverse-geocode coordinates to a human-readable name
                         const res = await fetch(
                             `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
                             { headers: { 'Accept-Language': 'en' } }
@@ -293,19 +302,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             data.address?.country
                         ].filter(Boolean);
 
-                        const locationName = parts.join(', ');
-                        input.value = locationName;
-                        status.textContent = '✅ Location detected successfully.';
+                        input.value = parts.join(', ');
+                        status.innerHTML = '<i class="fa-solid fa-circle-check"></i> Location detected successfully.';
                         status.style.color = 'green';
 
                     } catch (e) {
+                        // fall back to raw coordinates if reverse geocoding fails
                         input.value = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-                        status.textContent = '⚠️ Could not get location name, coordinates saved.';
+                        status.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Could not get location name, coordinates saved.';
                         status.style.color = 'orange';
                     }
 
                     btn.disabled = false;
-                    btn.textContent = '📍 Detect';
+                    btn.innerHTML = detectBtnHtml;
                 },
                 function (err) {
                     const messages = {
@@ -316,7 +325,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     status.textContent = messages[err.code] || 'Could not get location.';
                     status.style.color = 'red';
                     btn.disabled = false;
-                    btn.textContent = '📍 Detect';
+                    btn.innerHTML = detectBtnHtml;
                 },
                 { timeout: 10000, maximumAge: 60000 }
             );

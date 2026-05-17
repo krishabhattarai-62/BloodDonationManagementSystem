@@ -27,6 +27,9 @@ $gender = $user['gender'];
 $age = $user['age'];
 $blood_group = $user['blood_group'] ?? '';
 $alreadyEligible = $user['eligible'] ?? 0;
+$location_name = $user['location_name'] ?? '';
+$latitude = $user['latitude'] ?? '';
+$longitude = $user['longitude'] ?? '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
@@ -41,15 +44,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $age = cleanInput($_POST['age']);
         $blood_group = cleanInput($_POST['blood_group']);
         $eligible = isset($_POST['eligible']) ? 1 : 0;
+        $location_name = cleanInput($_POST['location_name'] ?? '');
+        $latitude = cleanInput($_POST['latitude'] ?? '');
+        $longitude = cleanInput($_POST['longitude'] ?? '');
+
+        $location_name = ($location_name !== '') ? $location_name : null;
+        $latitude = ($latitude !== '') ? $latitude : null;
+        $longitude = ($longitude !== '') ? $longitude : null;
 
         $extracted_blood_group = null;
 
-        /* ---------------- OCR START ---------------- */
-
+        // OCR reads the blood group from the uploaded proof image.
         if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
 
             $allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/bmp'];
-            $maxSize = 5 * 1024 * 1024; // 5MB
+            $maxSize = 5 * 1024 * 1024;
 
             $fileTmp = $_FILES['image']['tmp_name'];
             $fileType = mime_content_type($fileTmp);
@@ -63,50 +72,59 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                 $uploadDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR;
                 $uniqueName = uniqid('ocr_', true);
-                $targetFile = $uploadDir . $uniqueName . '.jpg';
                 $outputBase = $uploadDir . $uniqueName . '_out';
 
-                if (move_uploaded_file($fileTmp, $targetFile)) {
+                if (is_uploaded_file($fileTmp) && is_readable($fileTmp)) {
 
-                    // $tesseractPath = (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN')
-                    //     ? '"C:\\Program Files\\Tesseract-OCR\\tesseract.exe"'
-                    //     : 'tesseract';
+                    if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+                        $tesseractPath = 'C:\\Program Files\\Tesseract-OCR\\tesseract.exe';
+                    } else {
+                        $tesseractCandidates = [
+                            '/opt/homebrew/bin/tesseract',
+                            '/usr/local/bin/tesseract',
+                            '/usr/bin/tesseract',
+                        ];
+                        $tesseractPath = 'tesseract';
+                        foreach ($tesseractCandidates as $candidate) {
+                            if (is_executable($candidate)) {
+                                $tesseractPath = $candidate;
+                                break;
+                            }
+                        }
+                    }
 
-                    $tesseractPath = (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN')
-                        ? '"C:\\Program Files\\Tesseract-OCR\\tesseract.exe"'
-                        : '/opt/homebrew/bin/tesseract';
-
-                    $escapedInput = escapeshellarg($targetFile);
+                    $escapedTesseract = escapeshellarg($tesseractPath);
+                    $escapedInput = escapeshellarg($fileTmp);
                     $escapedOutput = escapeshellarg($outputBase);
-                    $command = "$tesseractPath $escapedInput $escapedOutput 2>&1";
+                    $command = "$escapedTesseract $escapedInput $escapedOutput 2>&1";
                     exec($command, $cmdOutput, $returnCode);
 
                     $ocrTextFile = $outputBase . '.txt';
 
                     if ($returnCode === 0 && file_exists($ocrTextFile)) {
+
                         $text = file_get_contents($ocrTextFile);
 
-                        // Normalize OCR text to handle common misreads
+                        // Normalize common OCR variants before matching.
                         $normalized = strtoupper($text);
                         $normalized = preg_replace('/\s+/', ' ', $normalized);
                         $normalized = str_replace(['(+)', '(-)'], ['+', '-'], $normalized);
                         $normalized = preg_replace('/\bPOSITIVE\b/', '+', $normalized);
                         $normalized = preg_replace('/\bNEGATIVE\b/', '-', $normalized);
-                        $normalized = preg_replace('/([A-Z])\s+([+-])/', '$1$2', $normalized); // "B +" → "B+"
+                        $normalized = preg_replace('/([A-Z])\s+([+-])/', '$1$2', $normalized);
 
-                        // No \b boundary — + and - are not word characters
                         preg_match('/(AB[+-]|[ABO][+-])/', $normalized, $match);
                         $extracted_blood_group = $match[0] ?? null;
 
                     } else {
-                        $error = "OCR processing failed. Please try a clearer image.";
+                        $error = $returnCode === 127
+                            ? "OCR tool not found. Please install Tesseract or check its path."
+                            : "OCR processing failed. Please try a clearer image.";
                     }
 
-                    // Cleanup temp files
-                    @unlink($targetFile);
                     @unlink($ocrTextFile);
 
-                    // Clean up old leftover OCR files (older than 1 hour)
+                    // Keep failed OCR temp files from piling up.
                     $oldFiles = glob(sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'ocr_*');
                     foreach ($oldFiles as $oldFile) {
                         if (filemtime($oldFile) < time() - 3600) {
@@ -115,17 +133,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     }
 
                 } else {
-                    $error = "Failed to save uploaded image.";
+                    $error = "Failed to read uploaded image. Please try again.";
                 }
             }
 
         } elseif (isset($_FILES['image']) && $_FILES['image']['error'] !== UPLOAD_ERR_NO_FILE) {
             $error = "File upload error (code: " . $_FILES['image']['error'] . ").";
         }
-
-        /* ---------------- OCR END ---------------- */
-
-        /* ---------------- VALIDATION ---------------- */
 
         if (empty($error)) {
             if (
@@ -144,13 +158,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
         }
 
-        /* ---------------- UPDATE DATABASE ---------------- */
-
         if (empty($error)) {
 
             $stmt = $pdo->prepare(
                 "UPDATE users 
-                 SET first_name=?, last_name=?, contact_number=?, gender=?, age=?, eligible=?, blood_group=? 
+                 SET first_name=?, last_name=?, contact_number=?, gender=?, age=?, eligible=?, blood_group=?,
+                     location_name=?, latitude=?, longitude=?
                  WHERE id=?"
             );
 
@@ -163,6 +176,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $age,
                     $eligible,
                     $blood_group,
+                    $location_name,
+                    $latitude,
+                    $longitude,
                     $user_id
                 ])
             ) {
@@ -183,6 +199,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>My Profile - Blood Donation</title>
     <link rel="stylesheet" href="../assets/css/style.css" />
+    <?php include '../includes/icon_fonts.php'; ?>
 </head>
 
 <body>
@@ -192,13 +209,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         <div class="main-content">
 
-            <div class="topbar">
-                <h2>Blood Donation Management</h2>
-                <div class="topbar-right">
-                    <span class="topbar-user">&#128100; <?= htmlspecialchars($_SESSION['first_name']) ?></span>
-                    <a href="logout.php">Logout</a>
-                </div>
-            </div>
+            <?php include '../includes/dashboard_topbar.php'; ?>
 
             <div class="page-content">
                 <p class="page-title" style="text-align:center; justify-content:center;">My Profile</p>
@@ -278,6 +289,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                     </div>
                                 </div>
 
+                                <div class="form-group profile-location-field">
+                                    <label>Your Location</label>
+                                    <div class="profile-location-row">
+                                        <input type="text" id="location_display" name="location_name"
+                                            placeholder="Click Detect to update your location"
+                                            value="<?= htmlspecialchars($location_name) ?>" readonly />
+                                        <button type="button" id="detect-location-btn" class="btn-primary"
+                                            style="white-space:nowrap; padding:10px 14px;">
+                                            <i class="fa-solid fa-location-dot"></i> Detect
+                                        </button>
+                                    </div>
+                                    <small id="location-status" class="profile-location-status"></small>
+                                </div>
+                                <input type="hidden" id="latitude" name="latitude"
+                                    value="<?= htmlspecialchars((string) $latitude) ?>" />
+                                <input type="hidden" id="longitude" name="longitude"
+                                    value="<?= htmlspecialchars((string) $longitude) ?>" />
+
                                 <div class="eligibility-box">
                                     <h4>Donation Eligibility</h4>
                                     <ul>
@@ -313,6 +342,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     </div>
 
     <?php include '../includes/footer.php'; ?>
+    <?php include '../includes/location_detect_script.php'; ?>
 </body>
 
 </html>

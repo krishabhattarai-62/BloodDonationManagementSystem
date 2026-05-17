@@ -3,7 +3,15 @@
     &copy; <?php echo date("Y"); ?> Blood Donation System. All rights reserved.
 </div>
 
-<?php include 'toast.php'; ?>
+<?php include __DIR__ . '/toast.php'; ?>
+
+<div id="chatGreeting" role="status">
+    <button type="button" onclick="closeChatGreeting()" aria-label="Dismiss greeting">
+        <i class="fa-solid fa-xmark"></i>
+    </button>
+    <strong>Hello!</strong>
+    <span>Need help with blood donation? I am here to assist you.</span>
+</div>
 
 <div id="chatToggle" onclick="toggleChat()" title="Chat with us">
     <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#2c3e50"
@@ -18,17 +26,17 @@
 
 <div id="chatbox" style="display:none;">
     <div id="chatHeader">
-        <span>&#128172; Blood Assistant</span>
-        <button onclick="toggleChat()">&#10005;</button>
+        <span><i class="fa-solid fa-comments"></i> Blood Assistant</span>
+        <button onclick="toggleChat()" aria-label="Close chat"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div id="messages">
-        <p class="bot">&#128075; Hi! I&#39;m your blood donation assistant. Try asking:</p>
+        <p class="bot"><i class="fa-solid fa-hand"></i> Hi! I&#39;m your blood donation assistant. Try asking:</p>
         <div id="suggestions">
-            <button class="suggestion-btn" onclick="sendSuggestion('Is O+ blood available?')">&#129656; Is O+
+            <button class="suggestion-btn" onclick="sendSuggestion('Is O+ blood available?')"><i class="fa-solid fa-earth-americas"></i> Is O+
                 available?</button>
-            <button class="suggestion-btn" onclick="sendSuggestion('Find A+ donors nearby')">&#128205; Find A+ donors
+            <button class="suggestion-btn" onclick="sendSuggestion('Find A+ donors nearby')"><i class="fa-solid fa-location-dot"></i> Find A+ donors
                 nearby</button>
-            <button class="suggestion-btn" onclick="sendSuggestion('Who has B+ blood?')">&#128100; Who has B+
+            <button class="suggestion-btn" onclick="sendSuggestion('Who has B+ blood?')"><i class="fa-solid fa-user"></i> Who has B+
                 blood?</button>
         </div>
     </div>
@@ -53,6 +61,59 @@
         cursor: pointer;
         z-index: 10000;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    #chatGreeting {
+        position: fixed;
+        right: 88px;
+        bottom: 28px;
+        width: 260px;
+        background: #fff;
+        color: #2c3e50;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 12px 38px 12px 14px;
+        z-index: 10000;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+        font-size: 0.88em;
+        line-height: 1.45;
+    }
+
+    #chatGreeting::after {
+        content: "";
+        position: absolute;
+        right: -7px;
+        bottom: 18px;
+        width: 12px;
+        height: 12px;
+        background: #fff;
+        border-right: 1px solid #e5e7eb;
+        border-bottom: 1px solid #e5e7eb;
+        transform: rotate(-45deg);
+    }
+
+    #chatGreeting strong,
+    #chatGreeting span {
+        display: block;
+    }
+
+    #chatGreeting button {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 22px;
+        height: 22px;
+        border: none;
+        border-radius: 50%;
+        background: #f3f4f6;
+        color: #4b5563;
+        cursor: pointer;
+        font-size: 12px;
+        line-height: 22px;
+    }
+
+    #chatGreeting button:hover {
+        background: #e5e7eb;
     }
 
     #chatbox {
@@ -85,6 +146,14 @@
         color: white;
         cursor: pointer;
         font-size: 1em;
+        line-height: 1;
+        padding: 2px 4px;
+    }
+
+    #chatHeader span {
+        display: flex;
+        align-items: center;
+        gap: 6px;
     }
 
     #messages {
@@ -141,6 +210,9 @@
     }
 
     .suggestion-btn {
+        display: flex;
+        align-items: center;
+        gap: 6px;
         background: #f4f6f8;
         color: #2c3e50;
         border: 1px solid #d0d8e0;
@@ -157,7 +229,8 @@
 </style>
 
 <script>
-    let userLat = null, userLng = null;
+    let userLat = null;
+    let userLng = null;
 
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
@@ -167,14 +240,29 @@
     }
 
     function toggleChat() {
-        let box = document.getElementById("chatbox");
-        let opening = box.style.display === "none";
+        const box = document.getElementById("chatbox");
+        const opening = box.style.display === "none";
         box.style.display = opening ? "block" : "none";
-        if (opening) document.getElementById("userInput").focus();
+        if (opening) {
+            closeChatGreeting();
+        }
+        if (opening) {
+            document.getElementById("userInput").focus();
+        }
+    }
+
+    function closeChatGreeting() {
+        const greeting = document.getElementById("chatGreeting");
+        if (greeting) {
+            greeting.style.display = "none";
+        }
     }
 
     document.getElementById("userInput").addEventListener("keydown", e => {
-        if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
     });
 
     function sendSuggestion(text) {
@@ -184,18 +272,26 @@
     }
 
     function sendMessage() {
-        let input = document.getElementById("userInput");
-        let message = input.value.trim();
-        if (!message) return;
+        const input = document.getElementById("userInput");
+        const message = input.value.trim();
+        if (!message) {
+            return;
+        }
 
         document.getElementById("suggestions")?.remove();
 
-        let messages = document.getElementById("messages");
-        messages.innerHTML += `<p class="user">${message}</p>`;
+        const messages = document.getElementById("messages");
+        const userMessage = document.createElement("p");
+        userMessage.className = "user";
+        userMessage.textContent = message;
+        messages.appendChild(userMessage);
         input.value = "";
 
-        let typingId = "typing-" + Date.now();
-        messages.innerHTML += `<p class="bot-error" id="${typingId}">Bot is typing&#8230;</p>`;
+        const typing = document.createElement("p");
+        typing.className = "bot-error";
+        typing.id = "typing-" + Date.now();
+        typing.textContent = "Bot is typing...";
+        messages.appendChild(typing);
         messages.scrollTop = messages.scrollHeight;
 
         let body = "message=" + encodeURIComponent(message);
@@ -211,18 +307,20 @@
         })
             .then(res => res.text())
             .then(reply => {
-                document.getElementById(typingId)?.remove();
-                messages.innerHTML += `<p class="bot">${reply}</p>`;
+                typing.remove();
+                const botMessage = document.createElement("p");
+                botMessage.className = "bot";
+                botMessage.innerHTML = reply;
+                messages.appendChild(botMessage);
                 messages.scrollTop = messages.scrollHeight;
             })
             .catch(() => {
-                document.getElementById(typingId)?.remove();
-                messages.innerHTML += `<p class="bot-error">Could not reach the server. Please try again.</p>`;
+                typing.remove();
+                const errorMessage = document.createElement("p");
+                errorMessage.className = "bot-error";
+                errorMessage.textContent = "Could not reach the server. Please try again.";
+                messages.appendChild(errorMessage);
                 messages.scrollTop = messages.scrollHeight;
             });
     }
 </script>
-
-</body>
-
-</html>

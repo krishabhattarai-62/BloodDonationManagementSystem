@@ -2,7 +2,6 @@
 if (session_status() === PHP_SESSION_NONE)
     session_start();
 
-// Guard: must have verified OTP
 if (empty($_SESSION['reset_email']) || empty($_SESSION['otp_verified'])) {
     header("Location: forget_password.php");
     exit;
@@ -25,7 +24,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $hashed = password_hash($newPassword, PASSWORD_DEFAULT);
         $pdo->prepare("UPDATE users SET password = ? WHERE email = ?")
             ->execute([$hashed, $email]);
-        // Clean up session
         unset($_SESSION['reset_email'], $_SESSION['otp_verified']);
 
         header("Location: login.php?reset=1");

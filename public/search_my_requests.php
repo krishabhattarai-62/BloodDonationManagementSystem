@@ -1,6 +1,7 @@
 <?php
 if (session_status() === PHP_SESSION_NONE)
     session_start();
+require_once '../includes/functions.php';
 require '../config/db.php';
 
 if (!isset($_SESSION['user_id'])) {
@@ -40,12 +41,6 @@ if (empty($results)) {
     exit;
 }
 
-$cls = [
-    'pending' => 'badge-warning',
-    'approved' => 'badge-success',
-    'rejected' => 'badge-danger'
-];
-
 foreach ($results as $i => $r):
     ?>
     <tr>
@@ -65,8 +60,8 @@ foreach ($results as $i => $r):
             <?= htmlspecialchars($r['hospital']) ?>
         </td>
         <td>
-            <span class="badge <?= $cls[$r['status']] ?? '' ?>">
-                <?= ucfirst($r['status']) ?>
+            <span class="badge <?= statusBadgeClass($r['status']) ?>">
+                <?= ucfirst(h($r['status'])) ?>
             </span>
         </td>
     </tr>

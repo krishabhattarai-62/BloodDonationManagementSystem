@@ -3,6 +3,8 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 require '../config/db.php';
+require_once '../includes/ensure_donations_schema.php';
+ensureDonationsSchema($pdo);
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
@@ -12,6 +14,8 @@ if (!isset($_SESSION['user_id'])) {
 $uid      = $_SESSION['user_id'];
 $msg      = '';
 $dateError = false;
+$flashMessage = $_SESSION['donation_flash'] ?? '';
+unset($_SESSION['donation_flash']);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['donation_date'])) {
 
@@ -23,12 +27,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['donation_date'])) {
         $user = $stmt->fetch();
 
         $date = $_POST['donation_date'];
-        $time = $_POST['donation_time'] ?? null;
+        $time = !empty($_POST['donation_time']) ? $_POST['donation_time'] : null;
+        $units = max(1, min(2, (int) ($_POST['units'] ?? 1)));
+        $blood_group = $user['blood_group'] ?? null;
 
-        $stmt = $pdo->prepare("INSERT INTO donations (user_id, donation_date, donation_time, blood_group, units) VALUES (?,?,?,?,?)");
-        $stmt->execute([$uid, $date, $time, $user['blood_group'], $_POST['units']]);
-        $msg = 'success';
-        header("Refresh:3");
+        if (empty($blood_group)) {
+            $msg = 'no_blood_group';
+        } else {
+            $stmt = $pdo->prepare(
+                "INSERT INTO donations (user_id, donation_date, donation_time, blood_group, units)
+                 VALUES (?, ?, ?, ?, ?)"
+            );
+            $stmt->execute([$uid, $date, $time, $blood_group, $units]);
+            $_SESSION['donation_flash'] = 'success';
+            header("Location: schedule_donation.php");
+            exit;
+        }
     }
 }
 
@@ -45,6 +59,7 @@ $eligible = $user['eligible'] ?? 0;
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Donate Blood - Blood Donation</title>
     <link rel="stylesheet" href="../assets/css/style.css" />
+    <?php include '../includes/icon_fonts.php'; ?>
 </head>
 
 <body>
@@ -53,20 +68,15 @@ $eligible = $user['eligible'] ?? 0;
         <?php include '../includes/donor_sidebar.php'; ?>
 
         <div class="main-content">
-            <div class="topbar">
-                <h2>Blood Donation Management</h2>
-                <div class="topbar-right">
-                    <span>&#128100; <?= htmlspecialchars($_SESSION['first_name']) ?></span>
-                    <a href="logout.php">Logout</a>
-                </div>
-            </div>
+            <?php include '../includes/dashboard_topbar.php'; ?>
 
             <div class="donate-page-wrapper">
-                <div style="width:100%; max-width:440px;">
+                <div class="donate-page-grid">
+                <div class="donate-form-panel">
 
                     <p class="page-title" style="margin-bottom:18px;">Donate Blood</p>
 
-                    <?php if ($msg === 'success'): ?>
+                    <?php if ($flashMessage === 'success'): ?>
                         <script>document.addEventListener('DOMContentLoaded', () => showToast('Blood donation scheduled successfully!', 'success'));</script>
                     <?php endif; ?>
 
@@ -78,14 +88,18 @@ $eligible = $user['eligible'] ?? 0;
                         <script>document.addEventListener('DOMContentLoaded', () => showToast('Please select a donation date.', 'error'));</script>
                     <?php endif; ?>
 
+                    <?php if ($msg === 'no_blood_group'): ?>
+                        <script>document.addEventListener('DOMContentLoaded', () => showToast('Please set your blood group on your profile before scheduling a donation.', 'error'));</script>
+                    <?php endif; ?>
+
                     <div class="form-card">
                         <div class="card-header">Pick a Date</div>
                         <div class="card-body">
 
                             <div class="calendar-nav">
-                                <button onclick="prevMonth()">&#8249;</button>
+                                <button onclick="prevMonth()"><i class="fa-solid fa-chevron-left"></i></button>
                                 <span id="monthYear"></span>
-                                <button onclick="nextMonth()">&#8250;</button>
+                                <button onclick="nextMonth()"><i class="fa-solid fa-chevron-right"></i></button>
                             </div>
 
                             <div class="calendar-grid" id="calendarGrid"></div>
@@ -118,6 +132,16 @@ $eligible = $user['eligible'] ?? 0;
                         </div>
                     </div>
 
+                </div>
+                <section class="donation-notice" aria-labelledby="donationNoticeTitle">
+                    <h3 id="donationNoticeTitle">Donation Notice</h3>
+                    <ul>
+                        <li>Please arrive 20 minutes earlier when you come to donate blood.</li>
+                        <li>Make sure to bring your necessary documents like your blood group card, health report card, and other required records.</li>
+                        <li>If anyone fails or forgets to bring their essential supporting documents, their donation request will be dismissed.</li>
+                        <li>Those who forgot or failed to bring supporting documents can apply for new related reports on the spot. Charges will apply appropriately.</li>
+                    </ul>
+                </section>
                 </div>
             </div>
         </div>

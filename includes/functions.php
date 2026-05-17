@@ -10,13 +10,14 @@ require_once __DIR__ . '/../PHPMailer/src/Exception.php';
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
-// -------------------------------------------------------
-// INPUT / VALIDATION HELPERS
-// -------------------------------------------------------
+function h($value)
+{
+    return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+}
 
 function cleanInput($data)
 {
-    return htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8');
+    return h(trim((string) $data));
 }
 
 function validateEmail($email)
@@ -28,10 +29,6 @@ function validatePassword($password)
 {
     return strlen($password) >= 8;
 }
-
-// -------------------------------------------------------
-// CSRF
-// -------------------------------------------------------
 
 function generateCSRF()
 {
@@ -46,15 +43,23 @@ function validateCSRF($token)
     return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
 }
 
-// -------------------------------------------------------
-// ROLE GUARDS
-// -------------------------------------------------------
+function redirectTo($path)
+{
+    header("Location: $path");
+    exit();
+}
+
+function requireLogin($path = 'login.php')
+{
+    if (!isset($_SESSION['user_id'])) {
+        redirectTo($path);
+    }
+}
 
 function requireDonor()
 {
     if (!isDonor()) {
-        header("Location: admin_dashboard.php");
-        exit();
+        redirectTo('admin_dashboard.php');
     }
 }
 
@@ -63,9 +68,30 @@ function isDonor()
     return isset($_SESSION['role']) && $_SESSION['role'] === 'donor';
 }
 
-// -------------------------------------------------------
-// SESSION TIMEOUT
-// -------------------------------------------------------
+function statusBadgeClass($status)
+{
+    return [
+        'pending' => 'badge-warning',
+        'approved' => 'badge-success',
+        'rejected' => 'badge-danger',
+    ][$status] ?? 'badge-secondary';
+}
+
+function containsKeyword($text, array $keywords)
+{
+    foreach ($keywords as $keyword) {
+        if (str_contains($text, $keyword)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function nullableValue($value)
+{
+    return ($value !== null && $value !== '') ? $value : null;
+}
 
 function checkSessionTimeout()
 {
@@ -75,20 +101,14 @@ function checkSessionTimeout()
     ) {
         session_unset();
         session_destroy();
-        header("Location: ../public/login.php");
-        exit();
+        redirectTo('../public/login.php');
     }
 
     $_SESSION['LAST_ACTIVITY'] = time();
 }
 
-// -------------------------------------------------------
-// AUTH
-// -------------------------------------------------------
-
 /**
- * Log a user in.
- * Only allows login if the account is email-verified.
+ * Logs in verified accounts only.
  */
 function loginUser($pdo, $email, $password)
 {
@@ -98,9 +118,8 @@ function loginUser($pdo, $email, $password)
 
     if ($user && password_verify($password, $user['password'])) {
 
-        // Block unverified accounts
         if (isset($user['email_verified']) && $user['email_verified'] == 0) {
-            return 'unverified'; // caller can show a specific message
+            return 'unverified';
         }
 
         session_regenerate_id(true);
@@ -117,8 +136,7 @@ function loginUser($pdo, $email, $password)
 }
 
 /**
- * Register a new donor with email_verified = 0.
- * The OTP is stored so verify_email.php can check it.
+ * Creates a donor pending email verification.
  */
 function registerUserUnverified(
     $pdo,
@@ -136,6 +154,10 @@ function registerUserUnverified(
     $longitude = null
 ) {
     $hashed = password_hash($password, PASSWORD_DEFAULT);
+
+    $location_name = nullableValue($location_name);
+    $latitude = nullableValue($latitude);
+    $longitude = nullableValue($longitude);
 
     $stmt = $pdo->prepare("
         INSERT INTO users 
@@ -162,8 +184,7 @@ function registerUserUnverified(
 }
 
 /**
- * Original registerUser — kept for backward compatibility.
- * Creates a verified account directly (e.g. admin-created users).
+ * Creates a verified donor directly for older admin flows.
  */
 function registerUser($pdo, $first_name, $last_name, $contact_number, $address, $email, $gender, $age, $password)
 {
@@ -189,15 +210,13 @@ function registerUser($pdo, $first_name, $last_name, $contact_number, $address, 
 }
 
 /**
- * Send a verification OTP to a newly registered user.
- * Reuses the same SMTP config as forget_password.php.
+ * Sends a verification OTP through the configured SMTP sandbox.
  */
 function sendVerificationOTP($email, $first_name, $otp)
 {
     try {
         $mail = new PHPMailer(true);
 
-        // SMTP settings — same as forget_password.php
         $mail->isSMTP();
         $mail->Host = 'sandbox.smtp.mailtrap.io';
         $mail->SMTPAuth = true;
@@ -211,10 +230,7 @@ function sendVerificationOTP($email, $first_name, $otp)
         $mail->isHTML(false);
         $mail->Subject = 'Email Verification Code';
 
-
-        $mail->Body = "Hello $first_name, Your verification code is: $otp
-Enter this code to verify your account.
-- Blood Donation System";
+        $mail->Body = "Hello $first_name, Your verification code is: $otp Enter this code to verify your account. - Blood Donation System";
 
         $mail->send();
         return true;
@@ -224,7 +240,6 @@ Enter this code to verify your account.
     }
 }
 
-// LOGOUT
 function logoutUser()
 {
     $_SESSION = [];

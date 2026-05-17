@@ -75,6 +75,7 @@ $backLabel = ($flow === 'reset_password') ? 'Back to Forgot Password' : 'Back to
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Verify Email - Blood Donation System</title>
     <link rel="stylesheet" href="../assets/css/style.css" />
+    <?php include '../includes/icon_fonts.php'; ?>
 </head>
 
 <body>
@@ -127,7 +128,7 @@ $backLabel = ($flow === 'reset_password') ? 'Back to Forgot Password' : 'Back to
 
                 <p style="text-align:center; margin-top:10px; font-size:12px;">
                     <a href="<?= $backLink ?>" style="color:#9ca3af; text-decoration:none;">
-                        &#8592; <?= $backLabel ?>
+                        <i class="fa-solid fa-arrow-left"></i> <?= $backLabel ?>
                     </a>
                 </p>
 

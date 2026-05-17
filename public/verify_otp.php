@@ -2,7 +2,6 @@
 if (session_status() === PHP_SESSION_NONE)
     session_start();
 
-// Guard: must come from forget_password page
 if (empty($_SESSION['reset_email'])) {
     header("Location: forget_password.php");
     exit;
@@ -25,10 +24,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ((int) $enteredOtp !== (int) $user['otp']) {
         $error = "Invalid OTP. Please try again.";
     } else {
-        // OTP correct — mark verified, go to reset page
         $_SESSION['otp_verified'] = true;
 
-        // Clear OTP from DB so it can't be reused
         $pdo->prepare("UPDATE users SET otp = NULL WHERE email = ?")
             ->execute([$email]);
         header("Location: reset_password.php");

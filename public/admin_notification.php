@@ -19,21 +19,14 @@ $notifications = getNotifications($pdo, $_SESSION['user_id'], 50);
     <meta charset="UTF-8" />
     <title>Admin Notifications</title>
     <link rel="stylesheet" href="../assets/css/style.css" />
+    <?php include '../includes/icon_fonts.php'; ?>
 </head>
 
 <body>
     <div class="dashboard">
         <?php include '../includes/admin_sidebar.php'; ?>
         <div class="main-content">
-            <div class="topbar">
-                <h2>Blood Donation Management</h2>
-                <div class="topbar-right">
-                    <span>👤
-                        <?= htmlspecialchars($_SESSION['first_name']) ?>
-                    </span>
-                    <a href="logout.php">Logout</a>
-                </div>
-            </div>
+            <?php include '../includes/dashboard_topbar.php'; ?>
             <div class="page-content">
                 <p class="page-title">Admin Notifications</p>
                 <div class="card">
@@ -49,7 +42,7 @@ $notifications = getNotifications($pdo, $_SESSION['user_id'], 50);
                                 align-items:flex-start;
                                 gap:12px;
                                 background: <?= $n['is_read'] ? '#fff' : '#fff8f8' ?>;">
-                                    <span style="font-size:20px;">🔔</span>
+                                    <span class="notif-icon"><i class="fa-solid fa-bell"></i></span>
                                     <div>
                                         <p style="margin:0; font-size:14px; color:#333;">
                                             <?= htmlspecialchars($n['message']) ?>
