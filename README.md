@@ -57,6 +57,7 @@ The project is developed using the following technologies:
 - HTML, CSS, and JavaScript for frontend design
 - PHPMailer for sending emails and OTP verification
 - OpenRouter API for AI chatbot and OCR functionality
+- Tesseract OCR for blood group detection from uploaded medical reports
 - Font Awesome for icons and interface improvements
 
 ---
